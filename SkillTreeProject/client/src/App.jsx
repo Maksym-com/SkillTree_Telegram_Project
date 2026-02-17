@@ -12,10 +12,15 @@ function App() {
 
   const fetchSkills = async () => {
     try {
-      const res = await fetch(`${API_URL}/skills`, {
+      // Використовуємо очистку URL від зайвих слешів
+      const cleanUrl = API_URL.replace(/\/$/, '');
+      
+      const res = await fetch(`${cleanUrl}/skills`, {
         headers: { "Bypass-Tunnel-Reminder": "true" }
       });
-      if (!res.ok) throw new Error("Server error"); // Додав перевірку статусу
+      
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      
       const data = await res.json();
       setSkills(data);
     } catch (err) { 
