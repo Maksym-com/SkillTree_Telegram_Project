@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
-const API_URL = 'https://rare-doors-call.loca.lt';
+const API_URL = 'https://skilltree-telegram-project.onrender.com/';
 
 function App() {
   const [skills, setSkills] = useState({});
