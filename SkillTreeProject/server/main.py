@@ -39,6 +39,7 @@ def seed_db(db: Session):
             Skill(id="fastapi", name="FastAPI", level=30, parent_id="python", pos_x=100, pos_y=350),
             Skill(id="react", name="React", level=45, parent_id="js", pos_x=700, pos_y=350),
             Skill(id="django", name="Django", level=10, parent_id="python", pos_x=300, pos_y=350),
+            Skill(id="sql", name="SQL", level=20.0, parent_id="root", pos_x=400, pos_y=350),
         ]
         db.add_all(initial_skills)
         db.commit()
