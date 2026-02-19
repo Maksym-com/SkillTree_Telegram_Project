@@ -92,6 +92,20 @@ def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
     return new_skill
 
 
+@app.delete("/skills/{skill_id}")
+def delete_skill(skill_id: str, db: Session = Depends(get_db)):
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    
+    # Видаляємо всі під-скіли (дітей)
+    db.query(Skill).filter(Skill.parent_id == skill_id).delete()
+    
+    db.delete(skill)
+    db.commit()
+    return {"status": "deleted"}
+
+
 @app.get("/skills")
 def get_skills(db: Session = Depends(get_db)):
     # Отримуємо всі навички з БД

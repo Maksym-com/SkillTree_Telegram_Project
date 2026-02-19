@@ -7,7 +7,8 @@ const API_URL = 'https://skilltree-telegram-project.onrender.com';
 function App() {
   const [skills, setSkills] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [selectedParent, setSelectedParent] = useState(null);
+  const [popupMode, setPopupMode] = useState('menu'); // 'menu' або 'create'
+  const [selectedSkill, setSelectedSkill] = useState(null); // ID обраного скіла
   const [newSkillName, setNewSkillName] = useState('');
   const transformComponentRef = useRef(null);
 
@@ -50,7 +51,6 @@ function App() {
     } catch (err) { console.error("Train error"); }
   };
 
-  // ФУНКЦІЯ ДОДАВАННЯ НОВОГО СКІЛА
   const handleAddSkill = async () => {
     if (!newSkillName.trim()) return;
     try {
@@ -64,7 +64,7 @@ function App() {
         body: JSON.stringify({
           id: newId,
           name: newSkillName,
-          parent_id: selectedParent
+          parent_id: selectedSkill //selectedSkill тепер виступає як parent для нового
         })
       });
       if (res.ok) {
@@ -74,6 +74,37 @@ function App() {
       }
     } catch (err) { console.error("Add skill error"); }
   };
+
+  const handleDelete = async (id) => {
+    if (window.confirm(`Видалити "${skills[id].name}" та всі пов'язані навички?`)) {
+      try {
+        await fetch(`${API_URL}/skills/${id}`, { 
+          method: 'DELETE',
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        setShowPopup(false);
+        fetchSkills();
+      } catch (err) { console.error("Delete error"); }
+    }
+  };
+
+  // Стиль для кнопок у меню
+  const menuButtonStyle = (color) => ({
+    width: '100%',
+    padding: '14px',
+    marginBottom: '10px',
+    borderRadius: '12px',
+    border: `1px solid ${color}`,
+    background: 'rgba(15, 23, 42, 0.5)',
+    color: color,
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px'
+  });
 
   if (!skills) {
     return (
@@ -99,10 +130,9 @@ function App() {
         initialScale={0.7}
         minScale={0.3}
         maxScale={2}
-        centerOnInit={true}
         limitToBounds={false}
       >
-        <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }} contentStyle={{ width: "800px", height: "1000px", display: "flex", alignItems: "flex-start", justifyContent: "center" }}>
+        <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }} contentStyle={{ width: "800px", height: "1000px" }}>
           <div style={{ width: "800px", height: "1000px", position: "relative" }}>
             
             <svg style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 1 }}>
@@ -129,71 +159,82 @@ function App() {
                 <motion.div
                   onClick={() => {
                     if (window.Telegram?.WebApp?.HapticFeedback) {
-                      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
                     }
-                    trainSkill(id);
+                    setSelectedSkill(id);
+                    setPopupMode('menu');
+                    setShowPopup(true);
                   }}
-                  whileTap={{ scale: 0.85 }}
+                  whileTap={{ scale: 0.9 }}
                   style={{
                     background: '#0f172a',
                     border: `2px solid ${data.level >= 100 ? '#3b82f6' : '#334155'}`,
                     borderRadius: '50%',
-                    width: '70px', height: '70px',
+                    width: '75px', height: '75px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     boxShadow: data.level >= 100 ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
                     cursor: 'pointer'
                   }}
                 >
-                  <span style={{ color: '#fff', fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>{data.name}</span>
+                  <span style={{ color: '#fff', fontSize: '9px', fontWeight: 'bold', textAlign: 'center', padding: '0 5px' }}>{data.name}</span>
                   <span style={{ color: '#3b82f6', fontSize: '11px' }}>{Math.floor(data.level)}%</span>
                 </motion.div>
-
-                {/* КНОПКА "+" ПІД КОЖНИМ ВУЗЛОМ */}
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedParent(id);
-                    setShowPopup(true);
-                  }}
-                  style={{
-                    position: 'absolute', bottom: '-15px', left: '50%', transform: 'translateX(-50%)',
-                    background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '50%',
-                    width: '20px', height: '20px', cursor: 'pointer', fontSize: '14px', lineHeight: '1', zIndex: 3
-                  }}
-                > + </button>
               </div>
             ))}
           </div>
         </TransformComponent>
       </TransformWrapper>
 
-      {/* POPUP ВІКНО */}
       <AnimatePresence>
         {showPopup && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ 
-              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-              background: 'rgba(2, 6, 23, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 
-            }}
+            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(2, 6, 23, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
           >
             <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-              style={{ background: '#1e293b', padding: '25px', borderRadius: '16px', border: '1px solid #3b82f6', width: '80%', maxWidth: '300px' }}
+              initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }}
+              style={{ background: '#1e293b', padding: '30px', borderRadius: '24px', border: '1px solid #3b82f6', width: '280px' }}
             >
-              <h3 style={{ color: '#fff', margin: '0 0 15px 0', fontSize: '14px', textAlign: 'center' }}>CREATE NEW NEURON</h3>
-              <p style={{ color: '#94a3b8', fontSize: '10px', marginBottom: '10px' }}>Parent: {selectedParent}</p>
-              <input 
-                autoFocus
-                value={newSkillName}
-                onChange={(e) => setNewSkillName(e.target.value)}
-                placeholder="Enter skill name..."
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', outline: 'none', marginBottom: '20px' }}
-              />
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setShowPopup(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'transparent', color: '#94a3b8', border: '1px solid #334155' }}>Cancel</button>
-                <button onClick={handleAddSkill} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#3b82f6', color: '#fff', border: 'none' }}>Create</button>
-              </div>
+              {popupMode === 'menu' ? (
+                <>
+                  <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', textAlign: 'center' }}>
+                    {skills[selectedSkill]?.name.toUpperCase()}
+                  </h2>
+                  
+                  <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>
+                    ⚡ TRAIN SKILL
+                  </button>
+                  
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>
+                    ➕ ADD BRANCH
+                  </button>
+                  
+                  <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>
+                    🗑️ DELETE
+                  </button>
+                  
+                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', color: '#64748b', background: 'none', border: 'none', marginTop: '15px', cursor: 'pointer', fontSize: '14px' }}>
+                    CANCEL
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '15px', textAlign: 'center' }}>
+                    NEW SKILL UNDER {skills[selectedSkill]?.name}
+                  </h3>
+                  <input 
+                    autoFocus
+                    value={newSkillName}
+                    onChange={(e) => setNewSkillName(e.target.value)}
+                    placeholder="Enter skill name..."
+                    style={{ width: '100%', padding: '14px', borderRadius: '12px', background: '#0f172a', color: '#fff', border: '1px solid #334155', marginBottom: '20px', outline: 'none' }}
+                  />
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#334155', color: '#fff', border: 'none', fontWeight: 'bold' }}>BACK</button>
+                    <button onClick={handleAddSkill} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}>CREATE</button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}
