@@ -1,26 +1,23 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-
 
 const API_URL = 'https://skilltree-telegram-project.onrender.com';
 
 function App() {
-  // Змінив на null, щоб легко перевіряти, чи завантажились дані
-  const [skills, setSkills] = useState(null); 
+  const [skills, setSkills] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedParent, setSelectedParent] = useState(null);
+  const [newSkillName, setNewSkillName] = useState('');
   const transformComponentRef = useRef(null);
 
   const fetchSkills = async () => {
     try {
-      // Використовуємо очистку URL від зайвих слешів
       const cleanUrl = API_URL.replace(/\/$/, '');
-      
       const res = await fetch(`${cleanUrl}/skills`, {
         headers: { "Bypass-Tunnel-Reminder": "true" }
       });
-      
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      
       const data = await res.json();
       setSkills(data);
     } catch (err) { 
@@ -34,18 +31,13 @@ function App() {
       window.Telegram.WebApp.expand();
     }
     fetchSkills();
-
     const timer = setTimeout(() => {
       if (transformComponentRef.current && skills) {
         transformComponentRef.current.centerView(0.7, 0); 
       }
     }, 800); 
-
     const interval = setInterval(fetchSkills, 3000);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    }
+    return () => { clearInterval(interval); clearTimeout(timer); }
   }, []);
 
   const trainSkill = async (id) => {
@@ -58,14 +50,37 @@ function App() {
     } catch (err) { console.error("Train error"); }
   };
 
-  // 2. ЗАПОБІЖНИК: Якщо дані ще не прийшли, показуємо завантаження
-  // Це виправить проблему "зникання" інтерфейсу
+  // ФУНКЦІЯ ДОДАВАННЯ НОВОГО СКІЛА
+  const handleAddSkill = async () => {
+    if (!newSkillName.trim()) return;
+    try {
+      const newId = newSkillName.toLowerCase().trim().replace(/\s+/g, '_');
+      const res = await fetch(`${API_URL}/skills/add`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          "Bypass-Tunnel-Reminder": "true" 
+        },
+        body: JSON.stringify({
+          id: newId,
+          name: newSkillName,
+          parent_id: selectedParent
+        })
+      });
+      if (res.ok) {
+        setNewSkillName('');
+        setShowPopup(false);
+        fetchSkills();
+      }
+    } catch (err) { console.error("Add skill error"); }
+  };
+
   if (!skills) {
     return (
       <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ opacity: 0.5, letterSpacing: '2px' }}>CONNECTING TO NEURAL NETWORK...</h2>
-          <p style={{ fontSize: '10px', color: '#3b82f6' }}>Waiting for Render to wake up (can take 30-50s)</p>
+          <p style={{ fontSize: '10px', color: '#3b82f6' }}>Waiting for Render to wake up</p>
         </div>
       </div>
     );
@@ -92,7 +107,6 @@ function App() {
             
             <svg style={{ position: 'absolute', width: '100%', height: '100%', zIndex: 1 }}>
               {Object.entries(skills).map(([id, data]) => {
-                // Додав перевірку ?. на випадок дивних даних
                 if (data?.parent && skills[data.parent]) {
                   const p1 = skills[data.parent].pos;
                   const p2 = data.pos;
@@ -111,37 +125,79 @@ function App() {
             </svg>
 
             {Object.entries(skills).map(([id, data]) => (
-              <motion.div
-                key={id}
-                onClick={() => {
-                  if (window.Telegram?.WebApp?.HapticFeedback) {
-                    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                  }
-                  trainSkill(id);
-                }}
-                whileTap={{ scale: 0.85 }}
-                style={{
-                  position: 'absolute',
-                  left: data?.pos?.x || 0, // Безпечний доступ
-                  top: data?.pos?.y || 0,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 2,
-                  background: '#0f172a',
-                  border: `2px solid ${data.level >= 100 ? '#3b82f6' : '#334155'}`,
-                  borderRadius: '50%',
-                  width: '70px', height: '70px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: data.level >= 100 ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <span style={{ color: '#fff', fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>{data.name}</span>
-                <span style={{ color: '#3b82f6', fontSize: '11px' }}>{Math.floor(data.level)}%</span>
-              </motion.div>
+              <div key={id} style={{ position: 'absolute', left: data?.pos?.x || 0, top: data?.pos?.y || 0, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
+                <motion.div
+                  onClick={() => {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                    }
+                    trainSkill(id);
+                  }}
+                  whileTap={{ scale: 0.85 }}
+                  style={{
+                    background: '#0f172a',
+                    border: `2px solid ${data.level >= 100 ? '#3b82f6' : '#334155'}`,
+                    borderRadius: '50%',
+                    width: '70px', height: '70px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: data.level >= 100 ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ color: '#fff', fontSize: '9px', fontWeight: 'bold', textAlign: 'center' }}>{data.name}</span>
+                  <span style={{ color: '#3b82f6', fontSize: '11px' }}>{Math.floor(data.level)}%</span>
+                </motion.div>
+
+                {/* КНОПКА "+" ПІД КОЖНИМ ВУЗЛОМ */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedParent(id);
+                    setShowPopup(true);
+                  }}
+                  style={{
+                    position: 'absolute', bottom: '-15px', left: '50%', transform: 'translateX(-50%)',
+                    background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '50%',
+                    width: '20px', height: '20px', cursor: 'pointer', fontSize: '14px', lineHeight: '1', zIndex: 3
+                  }}
+                > + </button>
+              </div>
             ))}
           </div>
         </TransformComponent>
       </TransformWrapper>
+
+      {/* POPUP ВІКНО */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ 
+              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+              background: 'rgba(2, 6, 23, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 
+            }}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+              style={{ background: '#1e293b', padding: '25px', borderRadius: '16px', border: '1px solid #3b82f6', width: '80%', maxWidth: '300px' }}
+            >
+              <h3 style={{ color: '#fff', margin: '0 0 15px 0', fontSize: '14px', textAlign: 'center' }}>CREATE NEW NEURON</h3>
+              <p style={{ color: '#94a3b8', fontSize: '10px', marginBottom: '10px' }}>Parent: {selectedParent}</p>
+              <input 
+                autoFocus
+                value={newSkillName}
+                onChange={(e) => setNewSkillName(e.target.value)}
+                placeholder="Enter skill name..."
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#fff', outline: 'none', marginBottom: '20px' }}
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setShowPopup(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: 'transparent', color: '#94a3b8', border: '1px solid #334155' }}>Cancel</button>
+                <button onClick={handleAddSkill} style={{ flex: 1, padding: '10px', borderRadius: '8px', background: '#3b82f6', color: '#fff', border: 'none' }}>Create</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

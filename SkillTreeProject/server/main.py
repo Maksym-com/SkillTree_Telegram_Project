@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 # Імпортуємо налаштування бази та моделі з твоїх нових файлів
 from database import SessionLocal, engine, Base
@@ -21,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Функція для отримання доступу до бази даних (Dependency Injection)
 def get_db():
     db = SessionLocal()
@@ -28,6 +30,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 # Функція для початкового заповнення бази (Seed), щоб дерево не було пустим
 def seed_db(db: Session):
@@ -44,6 +47,7 @@ def seed_db(db: Session):
         db.add_all(initial_skills)
         db.commit()
 
+
 # Викликаємо заповнення при старті додатка
 @app.on_event("startup")
 def startup_event():
@@ -52,6 +56,41 @@ def startup_event():
         seed_db(db)
     finally:
         db.close()
+
+
+# Описуємо, які дані ми чекаємо від фронтенду
+class SkillCreate(BaseModel):
+    id: str
+    name: str
+    parent_id: str
+
+
+@app.post("/skills/add")
+def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
+    # 1. Шукаємо батьківську навичку, щоб знати, де малювати нову
+    parent = db.query(Skill).filter(Skill.id == skill_data.parent_id).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent skill not found")
+
+    # 2. Проста логіка координат: малюємо трохи нижче і правіше/лівіше
+    # Можна додати рандом або перевірку кількості вже існуючих дітей
+    new_x = parent.pos_x + 100 
+    new_y = parent.pos_y + 150
+
+    new_skill = Skill(
+        id=skill_data.id.lower().replace(" ", "_"), # перетворюємо "My Skill" на "my_skill"
+        name=skill_data.name,
+        level=0.0,
+        parent_id=skill_data.parent_id,
+        pos_x=new_x,
+        pos_y=new_y
+    )
+
+    db.add(new_skill)
+    db.commit()
+    db.refresh(new_skill)
+    return new_skill
+
 
 @app.get("/skills")
 def get_skills(db: Session = Depends(get_db)):
