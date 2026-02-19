@@ -1,6 +1,6 @@
 # У твоєму models.py це має виглядати приблизно так:
 from sqlalchemy import Column, String, Float, Integer, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from database import Base
 
 class Skill(Base):
@@ -18,11 +18,12 @@ class Skill(Base):
     # 2. Виправляємо зв'язок:
     # Прибираємо backref і робимо зв'язок одностороннім (тільки від батька до дітей)
     # Cascade "all, delete-orphan" означає: якщо видалили батька, видаляй дітей.
+# Зв'язок від батька до дітей
     children = relationship(
         "Skill", 
         cascade="all, delete-orphan", 
-        back_populates="parent_node", # Використовуємо явне посилання замість backref
-        remote_side=[id]
+        backref=backref("parent", remote_side=[id]), # Одне посилання для всього
+        single_parent=True # Цей рядок виправить помилку з логів!
     )
     
     # Явне посилання на батька без жодних каскадів на видалення
