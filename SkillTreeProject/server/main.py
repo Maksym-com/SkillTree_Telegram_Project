@@ -110,13 +110,18 @@ def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
 
 @app.delete("/skills/{skill_id}")
 def delete_skill(skill_id: str, db: Session = Depends(get_db)):
-    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    # 1. Шукаємо саме той скіл, який хочемо видалити
+    target_skill = db.query(Skill).filter(Skill.id == skill_id).first()
     
-    if not skill:
+    if not target_skill:
         raise HTTPException(status_code=404, detail="Skill not found")
+
+    # 2. Видаляємо ТІЛЬКИ дітей цього скіла (ті, хто посилається на нього як на parent)
+    db.query(Skill).filter(Skill.parent_id == skill_id).delete()
+
+    # 3. Видаляємо сам скіл
+    db.delete(target_skill)
     
-    # Завдяки CASCADE у моделях, це видалить і скіл, і ВСІХ його нащадків
-    db.delete(skill)
     db.commit()
     return {"status": "deleted", "id": skill_id}
 
