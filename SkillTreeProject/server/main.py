@@ -67,43 +67,58 @@ class SkillCreate(BaseModel):
 
 @app.post("/skills/add")
 def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
-    # 1. Шукаємо батьківську навичку, щоб знати, де малювати нову
-    parent = db.query(Skill).filter(Skill.id == skill_data.parent_id).first()
-    if not parent:
-        raise HTTPException(status_code=404, detail="Parent skill not found")
+    # Перевірка на дублікат ID, щоб не «лягла» база
+    existing = db.query(Skill).filter(Skill.id == skill_data.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Skill with this ID already exists")
 
-    # 2. Проста логіка координат: малюємо трохи нижче і правіше/лівіше
-    # Можна додати рандом або перевірку кількості вже існуючих дітей
-    new_x = parent.pos_x + 100 
-    new_y = parent.pos_y + 150
+    parent = db.query(Skill).filter(Skill.id == skill_data.parent_id).first()
+    
+    if not parent:
+        new_x, new_y = 400, 100
+    else:
+        children_count = db.query(Skill).filter(Skill.parent_id == skill_data.parent_id).count()
+        
+        horizontal_step = 140
+        vertical_step = 120
+        
+        # Покращена логіка розрахунку (0, 1, -1, 2, -2...)
+        offset_multiplier = (children_count + 1) // 2
+        direction = 1 if children_count % 2 != 0 else -1
+        
+        # Якщо це перша дитина, вона йде прямо під батька (direction 0)
+        if children_count == 0:
+            new_x = parent.pos_x
+        else:
+            new_x = parent.pos_x + (direction * offset_multiplier * horizontal_step)
+            
+        new_y = parent.pos_y + vertical_step
 
     new_skill = Skill(
-        id=skill_data.id.lower().replace(" ", "_"), # перетворюємо "My Skill" на "my_skill"
+        id=skill_data.id,
         name=skill_data.name,
         level=0.0,
-        parent_id=skill_data.parent_id,
         pos_x=new_x,
-        pos_y=new_y
+        pos_y=new_y,
+        parent_id=skill_data.parent_id
     )
-
+    
     db.add(new_skill)
     db.commit()
-    db.refresh(new_skill)
-    return new_skill
+    return {"status": "success", "id": new_skill.id}
 
 
 @app.delete("/skills/{skill_id}")
 def delete_skill(skill_id: str, db: Session = Depends(get_db)):
     skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
     
-    # Видаляємо всі під-скіли (дітей)
-    db.query(Skill).filter(Skill.parent_id == skill_id).delete()
-    
+    # Завдяки CASCADE у моделях, це видалить і скіл, і ВСІХ його нащадків
     db.delete(skill)
     db.commit()
-    return {"status": "deleted"}
+    return {"status": "deleted", "id": skill_id}
 
 
 @app.get("/skills")
