@@ -387,51 +387,15 @@ function App() {
                   )}
 
                   <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD CHILD BRANCH</button>
-                  
-                  {!selectedSkill.startsWith('root_') && (
-                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE BRANCH</button>
-                  )}
-                  
-                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer', letterSpacing: '1px' }}>
-                    CANCEL
-                  </button>
-                </>
-              ) : (
-                  <>
-                  <h3 style={{ 
-                    color: '#fff', 
-                    fontSize: '14px', 
-                    marginBottom: '20px', 
-                    textAlign: 'center',
-                    fontWeight: '600',
-                    opacity: 0.9
-                  }}>
-                    NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
-                  </h3>
-                  
-                  <input 
-                    ref={inputRef} 
-                    autoFocus
-                    value={newSkillName} 
-                    onChange={(e) => setNewSkillName(e.target.value)} 
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
-                    placeholder="Enter skill name..." 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px 16px', 
-                      borderRadius: '12px', 
-                      background: '#0f172a', 
-                      color: '#fff', 
-                      border: '1px solid #334155', 
-                      marginBottom: '24px', 
-                      fontSize: '16px', 
-                      outline: 'none',
-                      transition: 'border-color 0.2s',
-                    }} 
-                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={(e) => e.target.style.borderColor = '#334155'}
-                  />
-                  
+                    {!selectedSkill.startsWith('root_') && (
+                      <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE BRANCH</button>
+                    )}
+                    
+                    <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer', letterSpacing: '1px' }}>
+                      CANCEL
+                    </button>
+                  </>
+                ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                     <h3 style={{ 
                       color: '#fff', 
@@ -457,17 +421,17 @@ function App() {
                       placeholder="Enter skill name..." 
                       style={{ 
                         width: '100%',
-                        maxWidth: '240px', // Обмежуємо ширину, щоб не було на все вікно
-                        padding: '10px 14px', // Трохи менші відступи для компактності
+                        maxWidth: '240px', 
+                        padding: '10px 14px', 
                         borderRadius: '10px', 
                         background: '#0f172a', 
                         color: '#fff', 
                         border: '1px solid #334155', 
                         marginBottom: '20px', 
-                        fontSize: '15px', // Трохи менший шрифт
+                        fontSize: '15px', 
                         outline: 'none',
                         transition: 'all 0.2s',
-                        textAlign: 'left' // Текст починається зліва для зручності
+                        textAlign: 'left'
                       }} 
                       onFocus={(e) => {
                         e.target.style.borderColor = '#3b82f6';
@@ -516,8 +480,7 @@ function App() {
                       </button>
                     </div>
                   </div>
-                </>
-              )}
+                )}
             </motion.div>
           </motion.div>
         )}
