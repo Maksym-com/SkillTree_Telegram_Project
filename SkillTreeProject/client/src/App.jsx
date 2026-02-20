@@ -432,45 +432,89 @@ function App() {
                     onBlur={(e) => e.target.style.borderColor = '#334155'}
                   />
                   
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button 
-                      onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} 
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                    <h3 style={{ 
+                      color: '#fff', 
+                      fontSize: '14px', 
+                      marginBottom: '16px', 
+                      textAlign: 'center',
+                      fontWeight: '600',
+                      opacity: 0.9,
+                      width: '100%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
+                    </h3>
+                    
+                    <input 
+                      ref={inputRef} 
+                      autoFocus
+                      value={newSkillName} 
+                      onChange={(e) => setNewSkillName(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
+                      placeholder="Enter skill name..." 
                       style={{ 
-                        flex: 1, 
-                        padding: '12px', 
-                        borderRadius: '12px', 
-                        background: '#334155', 
+                        width: '100%',
+                        maxWidth: '240px', // Обмежуємо ширину, щоб не було на все вікно
+                        padding: '10px 14px', // Трохи менші відступи для компактності
+                        borderRadius: '10px', 
+                        background: '#0f172a', 
                         color: '#fff', 
-                        border: 'none', 
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        transition: 'background 0.2s'
+                        border: '1px solid #334155', 
+                        marginBottom: '20px', 
+                        fontSize: '15px', // Трохи менший шрифт
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                        textAlign: 'left' // Текст починається зліва для зручності
+                      }} 
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.boxShadow = '0 0 0 1px rgba(59, 130, 246, 0.2)';
                       }}
-                      onMouseEnter={(e) => e.target.style.background = '#475569'}
-                      onMouseLeave={(e) => e.target.style.background = '#334155'}
-                    >
-                      BACK
-                    </button>
-                    <button 
-                      onClick={handleAddSkill} 
-                      disabled={isSubmitting || !newSkillName.trim()} 
-                      style={{ 
-                        flex: 2, 
-                        padding: '12px', 
-                        borderRadius: '12px', 
-                        background: '#3b82f6', 
-                        color: '#fff', 
-                        border: 'none',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1,
-                        cursor: (isSubmitting || !newSkillName.trim()) ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s'
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#334155';
+                        e.target.style.boxShadow = 'none';
                       }}
-                    >
-                      {isSubmitting ? 'CREATING...' : 'CREATE BRANCH'}
-                    </button>
+                    />
+                    
+                    <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '240px' }}>
+                      <button 
+                        onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} 
+                        style={{ 
+                          flex: 1, 
+                          padding: '10px', 
+                          borderRadius: '10px', 
+                          background: '#334155', 
+                          color: '#fff', 
+                          border: 'none', 
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        BACK
+                      </button>
+                      <button 
+                        onClick={handleAddSkill} 
+                        disabled={isSubmitting || !newSkillName.trim()} 
+                        style={{ 
+                          flex: 1.5, 
+                          padding: '10px', 
+                          borderRadius: '10px', 
+                          background: '#3b82f6', 
+                          color: '#fff', 
+                          border: 'none',
+                          fontSize: '13px',
+                          fontWeight: 'bold',
+                          opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1,
+                          cursor: (isSubmitting || !newSkillName.trim()) ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {isSubmitting ? '...' : 'CREATE'}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
