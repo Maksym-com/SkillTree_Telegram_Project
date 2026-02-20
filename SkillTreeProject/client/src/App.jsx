@@ -267,12 +267,13 @@ function App() {
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)', width: '100%', maxWidth: '320px' }}
+              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)', width: '100%', maxWidth: '300px' }}
               onClick={(e) => e.stopPropagation()}
             >
               {popupMode === 'menu' ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '5px' }}>
+                  {/* Заголовок з ідеальним центруванням */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', minHeight: '32px' }}>
                     {isEditingName ? (
                       <input 
                         autoFocus
@@ -280,18 +281,27 @@ function App() {
                         onChange={(e) => setEditedName(e.target.value)}
                         onBlur={handleRename}
                         onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                        style={{ background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', borderRadius: '8px', padding: '4px 8px', textAlign: 'center', fontSize: '18px', width: '80%', outline: 'none' }}
+                        style={{ 
+                          background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', 
+                          borderRadius: '6px', padding: '2px 8px', textAlign: 'center', 
+                          fontSize: '16px', width: '100%', outline: 'none' 
+                        }}
                       />
                     ) : (
                       <>
-                        <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>{skills[selectedSkill]?.name}</h2>
+                        <h2 style={{ color: '#fff', fontSize: '18px', margin: 0, textAlign: 'center' }}>
+                          {skills[selectedSkill]?.name}
+                        </h2>
                         <button 
                           onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: 0.5, transition: 'opacity 0.2s' }}
+                          style={{ 
+                            position: 'absolute', right: '-25px', background: 'none', border: 'none', 
+                            cursor: 'pointer', opacity: 0.4, transition: 'opacity 0.2s', padding: '4px' 
+                          }}
                           onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = 0.4}
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                           </svg>
@@ -304,6 +314,7 @@ function App() {
                     Level: {Math.floor(skills[selectedSkill]?.level)}%
                   </p>
 
+                  {/* Кнопки / Статус Mastered */}
                   {skills[selectedSkill]?.level < 100 ? (
                     <button 
                       onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} 
@@ -312,7 +323,12 @@ function App() {
                       ⚡ TRAIN SKILL
                     </button>
                   ) : (
-                    <div style={{ width: '100%', padding: '14px', marginBottom: '10px', borderRadius: '12px', border: '1px solid #10b981', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', fontWeight: 'bold', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <div style={{ 
+                      width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '10px', 
+                      border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981', 
+                      background: 'rgba(16, 185, 129, 0.05)', fontWeight: 'bold', 
+                      fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' 
+                    }}>
                       🏆 MASTERED
                     </div>
                   )}
@@ -323,38 +339,26 @@ function App() {
                     <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE BRANCH</button>
                   )}
                   
-                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '12px', cursor: 'pointer' }}>
+                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer', letterSpacing: '1px' }}>
                     CANCEL
                   </button>
                 </>
               ) : (
+                /* Блок створення гілки залишаємо без змін */
                 <>
                   <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '15px', textAlign: 'center' }}>
                     NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
                   </h3>
-                  
                   <input 
-                    ref={inputRef} 
-                    autoFocus
-                    value={newSkillName} 
+                    ref={inputRef} autoFocus value={newSkillName} 
                     onChange={(e) => setNewSkillName(e.target.value)} 
                     onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
                     placeholder="Enter skill name..." 
                     style={{ width: '100%', padding: '14px', borderRadius: '12px', background: '#0f172a', color: '#fff', border: '1px solid #334155', marginBottom: '20px', fontSize: '16px', outline: 'none' }} 
                   />
-                  
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} 
-                      style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', cursor: 'pointer' }}
-                    >
-                      BACK
-                    </button>
-                    <button 
-                      onClick={handleAddSkill} 
-                      disabled={isSubmitting || !newSkillName.trim()} 
-                      style={{ flex: 2, padding: '14px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', opacity: (isSubmitting || !newSkillName.trim()) ? 0.5 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
-                    >
+                    <button onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', cursor: 'pointer' }}>BACK</button>
+                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 2, padding: '14px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', opacity: (isSubmitting || !newSkillName.trim()) ? 0.5 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
                       {isSubmitting ? 'CREATING...' : 'CREATE BRANCH'}
                     </button>
                   </div>
