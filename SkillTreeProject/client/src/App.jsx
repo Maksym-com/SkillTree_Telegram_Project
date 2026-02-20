@@ -272,42 +272,75 @@ function App() {
             >
               {popupMode === 'menu' ? (
                 <>
-                  {/* Заголовок з ідеальним центруванням */}
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', minHeight: '32px' }}>
-                    {isEditingName ? (
-                      <input 
-                        autoFocus
-                        value={editedName}
-                        onChange={(e) => setEditedName(e.target.value)}
-                        onBlur={handleRename}
-                        onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                        style={{ 
-                          background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', 
-                          borderRadius: '6px', padding: '2px 8px', textAlign: 'center', 
-                          fontSize: '16px', width: '100%', outline: 'none' 
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <h2 style={{ color: '#fff', fontSize: '18px', margin: 0, textAlign: 'center' }}>
-                          {skills[selectedSkill]?.name}
-                        </h2>
-                        <button 
-                          onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }}
+                  {/* Заголовок: ідеальне центрування та адаптивний інпут */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    marginBottom: '12px', 
+                    minHeight: '32px',
+                    position: 'relative'
+                  }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      {isEditingName ? (
+                        <input 
+                          autoFocus
+                          value={editedName}
+                          onChange={(e) => setEditedName(e.target.value)}
+                          onBlur={handleRename}
+                          onKeyDown={(e) => e.key === 'Enter' && handleRename()}
                           style={{ 
-                            position: 'absolute', right: '-25px', background: 'none', border: 'none', 
-                            cursor: 'pointer', opacity: 0.4, transition: 'opacity 0.2s', padding: '4px' 
+                            background: '#0f172a', 
+                            color: '#fff', 
+                            border: '1px solid #3b82f6', 
+                            borderRadius: '6px', 
+                            padding: '2px 10px', 
+                            textAlign: 'center', 
+                            fontSize: '18px', 
+                            fontWeight: 'bold',
+                            outline: 'none',
+                            width: `${Math.max(editedName.length, 5)}ch`, // Ширина залежить від кількості символів
+                            minWidth: '100px',
+                            maxWidth: '240px'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = 0.4}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                        </button>
-                      </>
-                    )}
+                        />
+                      ) : (
+                        <>
+                          <h2 style={{ 
+                            color: '#fff', 
+                            fontSize: '18px', 
+                            margin: 0, 
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                          }}>
+                            {skills[selectedSkill]?.name}
+                          </h2>
+                          <button 
+                            onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }}
+                            style={{ 
+                              position: 'absolute',
+                              left: '100%', // Олівець завжди праворуч від тексту
+                              marginLeft: '8px',
+                              background: 'none', 
+                              border: 'none', 
+                              cursor: 'pointer', 
+                              opacity: 0.5, 
+                              transition: 'opacity 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '4px'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginBottom: '20px' }}>
