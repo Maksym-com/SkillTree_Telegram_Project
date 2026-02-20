@@ -2,9 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 
 from database import SessionLocal, engine, Base
-from models import Skill
+from models import Skill, User
 
 # Створення таблиць
 Base.metadata.create_all(bind=engine)
@@ -26,59 +27,71 @@ def get_db():
     finally:
         db.close()
 
-def seed_db(db: Session):
-    if db.query(Skill).first() is None:
-        initial_skills = [
-            Skill(id="root", name="Core", level=100, parent_id=None, pos_x=400, pos_y=50),
-            Skill(id="python", name="Python", level=80, parent_id="root", pos_x=200, pos_y=200),
-            Skill(id="js", name="JavaScript", level=60, parent_id="root", pos_x=600, pos_y=200),
-            Skill(id="fastapi", name="FastAPI", level=30, parent_id="python", pos_x=100, pos_y=350),
-            Skill(id="react", name="React", level=45, parent_id="js", pos_x=700, pos_y=350),
-            Skill(id="django", name="Django", level=10, parent_id="python", pos_x=300, pos_y=350),
-            Skill(id="sql", name="SQL", level=20, parent_id="root", pos_x=400, pos_y=350),
-        ]
-        db.add_all(initial_skills)
-        db.commit()
+# --- Ендпоінти Користувача ---
 
-@app.on_event("startup")
-def startup_event():
-    db = SessionLocal()
-    try:
-        seed_db(db)
-    finally:
-        db.close()
+@app.get("/user/init/{tg_id}")
+def init_user(tg_id: int, username: Optional[str] = None, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.telegram_id == tg_id).first()
+    if not user:
+        user = User(telegram_id=tg_id, username=username)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        # Створюємо персональний Root
+        root_id = f"root_{tg_id}"
+        initial_skill = Skill(
+            id=root_id,
+            name="My Core",
+            level=100.0, # Корінь зазвичай прокачаний
+            parent_id=None,
+            pos_x=400,
+            pos_y=50,
+            user_id=user.id
+        )
+        db.add(initial_skill)
+        db.commit()
+    
+    return {"user_id": user.id, "tg_id": user.telegram_id}
+
+# --- Ендпоінти Навичок ---
 
 class SkillCreate(BaseModel):
     id: str
     name: str
     parent_id: str
+    user_id: int # Обов'язково для прив'язки
 
 @app.post("/skills/add")
 def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
-    # Перевірка на дублікат ID
+    # 1. Перевірка користувача
+    user = db.query(User).filter(User.id == skill_data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 2. Перевірка на дублікат ID
     existing = db.query(Skill).filter(Skill.id == skill_data.id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Skill already exists")
 
-    parent = db.query(Skill).filter(Skill.id == skill_data.parent_id).first()
+    # 3. Пошук батька (тільки серед скілів цього юзера)
+    parent = db.query(Skill).filter(
+        Skill.id == skill_data.parent_id, 
+        Skill.user_id == skill_data.user_id
+    ).first()
     
     if not parent:
-        # Якщо батько не вказаний або не знайдений, робимо його кореневим
-        new_x, new_y = 400, 100
+        new_x, new_y = 400, 150
     else:
+        # Рахуємо дітей тільки цього батька
         children_count = db.query(Skill).filter(Skill.parent_id == skill_data.parent_id).count()
         
         horizontal_step = 140
         vertical_step = 120
-        
         offset_multiplier = (children_count + 1) // 2
         direction = 1 if children_count % 2 != 0 else -1
         
-        if children_count == 0:
-            new_x = parent.pos_x
-        else:
-            new_x = parent.pos_x + (direction * offset_multiplier * horizontal_step)
-            
+        new_x = parent.pos_x if children_count == 0 else parent.pos_x + (direction * offset_multiplier * horizontal_step)
         new_y = parent.pos_y + vertical_step
 
     new_skill = Skill(
@@ -87,38 +100,19 @@ def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
         level=0.0,
         pos_x=new_x,
         pos_y=new_y,
-        parent_id=skill_data.parent_id if parent else None
+        parent_id=skill_data.parent_id if parent else None,
+        user_id=skill_data.user_id
     )
     
     db.add(new_skill)
     db.commit()
     return {"status": "success", "id": new_skill.id}
 
-@app.delete("/skills/{skill_id}")
-def delete_skill(skill_id: str, db: Session = Depends(get_db)):
-    # 1. Знаходимо скіл, який хочемо видалити
-    target_skill = db.query(Skill).filter(Skill.id == skill_id).first()
-    
-    if not target_skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
-
-    # ЗАХИСТ: Не дозволяємо видалити корінь "root" через API без додаткових перевірок
-    if target_skill.id == "root":
-         raise HTTPException(status_code=403, detail="Cannot delete root skill")
-
-    # 2. Спочатку знаходимо всіх прямих дітей і видаляємо їх
-    # synchronize_session=False важливо для коректного виконання масового видалення
-    db.query(Skill).filter(Skill.parent_id == skill_id).delete(synchronize_session=False)
-
-    # 3. Тепер видаляємо сам скіл
-    db.delete(target_skill)
-    
-    db.commit()
-    return {"status": "deleted", "id": skill_id}
-
-@app.get("/skills")
-def get_skills(db: Session = Depends(get_db)):
-    skills = db.query(Skill).all()
+@app.get("/skills/{user_id}")
+def get_user_skills(user_id: int, db: Session = Depends(get_db)):
+    skills = db.query(Skill).filter(Skill.user_id == user_id).all()
+    if not skills:
+        return {} # Повертаємо порожній об'єкт, якщо юзер новий
     return {
         s.id: {
             "name": s.name,
@@ -127,6 +121,24 @@ def get_skills(db: Session = Depends(get_db)):
             "pos": {"x": s.pos_x, "y": s.pos_y}
         } for s in skills
     }
+
+@app.delete("/skills/{skill_id}")
+def delete_skill(skill_id: str, db: Session = Depends(get_db)):
+    target_skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    
+    if not target_skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+
+    # Захист будь-якого кореневого вузла
+    if target_skill.id.startswith("root_"):
+         raise HTTPException(status_code=403, detail="Cannot delete your Core node")
+
+    # Видалення дітей
+    db.query(Skill).filter(Skill.parent_id == skill_id).delete(synchronize_session=False)
+    db.delete(target_skill)
+    db.commit()
+    
+    return {"status": "deleted", "id": skill_id}
 
 @app.post("/train/{skill_id}")
 def train(skill_id: str, db: Session = Depends(get_db)):
