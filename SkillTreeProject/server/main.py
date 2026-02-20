@@ -7,7 +7,9 @@ from typing import Optional
 from database import SessionLocal, engine, Base
 from models import Skill, User
 
-# Створення таблиць
+
+# ОБЕРЕЖНО: це видалить усі дані!
+Base.metadata.drop_all(bind=engine) 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()

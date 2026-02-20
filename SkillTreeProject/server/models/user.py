@@ -8,5 +8,5 @@ class User(Base):
     telegram_id = Column(BigInteger, unique=True, index=True)
     username = Column(String, nullable=True)
     
-    # Зв'язок з навичками
+    # Зв'язок з навичками (один користувач - багато навичок)
     skills = relationship("Skill", back_populates="owner", cascade="all, delete-orphan")
