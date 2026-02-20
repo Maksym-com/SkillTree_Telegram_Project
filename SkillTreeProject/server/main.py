@@ -144,12 +144,28 @@ def delete_skill(skill_id: str, db: Session = Depends(get_db)):
     return {"status": "deleted", "id": skill_id}
 
 @app.post("/train/{skill_id}")
-def train(skill_id: str, db: Session = Depends(get_db)):
+async def train_skill(skill_id: str, db: Session = Depends(get_db)):
     skill = db.query(Skill).filter(Skill.id == skill_id).first()
     if not skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
+        return {"error": "Skill not found"}
     
-    skill.level = min(100, skill.level + 10)
+    # Якщо рівень вже 100 або більше, не додаємо досвід
+    if skill.level >= 100:
+        return {"status": "already_maxed", "level": 100}
+
+    # Твоя логіка додавання досвіду (наприклад, +5%)
+    skill.level = min(100.0, skill.level + 5.0) 
+    
     db.commit()
-    db.refresh(skill)
-    return {"id": skill.id, "level": skill.level}
+    return {"status": "success", "level": skill.level}
+
+
+@app.put("/skills/{skill_id}/rename")
+async def rename_skill(skill_id: str, new_name: dict, db: Session = Depends(get_db)):
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if not skill:
+        return {"error": "Skill not found"}
+    
+    skill.name = new_name.get("name")
+    db.commit()
+    return {"status": "success", "new_name": skill.name}
