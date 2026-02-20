@@ -9,7 +9,8 @@ from models import Skill, User
 
 
 # ОБЕРЕЖНО: це видалить усі дані!
-Base.metadata.drop_all(bind=engine) 
+# Base.metadata.drop_all(bind=engine) 
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
