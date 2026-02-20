@@ -1,47 +1,44 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const API_URL = 'https://skilltree-telegram-project.onrender.com';
 
 function App() {
-  const [userId, setUserId] = useState(null); // Внутрішній ID з бази даних
+  const [userId, setUserId] = useState(null);
   const [skills, setSkills] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('menu');
-  const [selectedSkill, setSelectedSkill] = useState(null); 
+  const [selectedSkill, setSelectedSkill] = useState(null);
   const [newSkillName, setNewSkillName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userAvatar, setUserAvatar] = useState(null);
   const [firstName, setFirstName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
-  
+
   const transformComponentRef = useRef(null);
   const inputRef = useRef(null);
 
-  // 1. Отримання даних дерева для конкретного користувача
+  // 1. Функція завантаження скілів (мемоїзована)
   const fetchSkills = useCallback(async (currentUserId) => {
-    const idToUse = currentUserId || userId;
-    if (!idToUse) return;
-
+    if (!currentUserId) return;
     try {
-      const res = await fetch(`${API_URL}/skills/${idToUse}`, {
+      const res = await fetch(`${API_URL}/skills/${currentUserId}`, {
         headers: { "Bypass-Tunnel-Reminder": "true" }
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
       setSkills(data);
-    } catch (err) { 
-      console.error("API Error (fetchSkills):", err); 
+    } catch (err) {
+      console.error("API Error (fetchSkills):", err);
     }
-  }, [userId]);
+  }, []);
 
-
-  // 2. Ініціалізація користувача та профілю (ОБ'ЄДНАНО)
+  // 2. Ініціалізація користувача
   useEffect(() => {
     const initApp = async () => {
-      let tgId = 12345678; // Тестовий ID
+      let tgId = 12345678; // Тест
       let username = "LocalUser";
       let fName = "User";
 
@@ -49,20 +46,16 @@ function App() {
         const webApp = window.Telegram.WebApp;
         webApp.ready();
         webApp.expand();
-        
+
         const user = webApp.initDataUnsafe?.user;
         if (user) {
           tgId = user.id;
           username = user.username || user.first_name;
           fName = user.first_name || "User";
-          setFirstName(fName);
           setUserAvatar(user.photo_url || null);
-        } else {
-          setFirstName(fName);
         }
-      } else {
-        setFirstName(fName);
       }
+      setFirstName(fName);
 
       try {
         const res = await fetch(`${API_URL}/user/init/${tgId}?username=${encodeURIComponent(username)}`, {
@@ -70,8 +63,6 @@ function App() {
         });
         const userData = await res.json();
         setUserId(userData.user_id);
-        
-        // Відразу завантажуємо скіли для отриманого ID
         fetchSkills(userData.user_id);
       } catch (err) {
         console.error("Initialization error:", err);
@@ -79,11 +70,11 @@ function App() {
     };
 
     initApp();
-  }, [fetchSkills]); // Додали fetchSkills у залежності для безпеки
+  }, [fetchSkills]);
 
   const trainSkill = async (id) => {
     try {
-      await fetch(`${API_URL}/train/${id}`, { 
+      await fetch(`${API_URL}/train/${id}`, {
         method: 'POST',
         headers: { "Bypass-Tunnel-Reminder": "true" }
       });
@@ -94,22 +85,21 @@ function App() {
   const handleAddSkill = async () => {
     if (!newSkillName.trim() || isSubmitting || !userId) return;
     setIsSubmitting(true);
-
     try {
       const randomStr = Math.random().toString(36).substring(2, 7);
       const uniqueId = `${newSkillName.toLowerCase().trim().replace(/\s+/g, '_')}_${randomStr}`;
-      
+
       const res = await fetch(`${API_URL}/skills/add`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          "Bypass-Tunnel-Reminder": "true" 
+          "Bypass-Tunnel-Reminder": "true"
         },
         body: JSON.stringify({
           id: uniqueId,
           name: newSkillName.trim(),
           parent_id: selectedSkill,
-          user_id: userId // Передаємо внутрішній ID користувача
+          user_id: userId
         })
       });
 
@@ -118,19 +108,15 @@ function App() {
         setShowPopup(false);
         fetchSkills(userId);
       }
-    } catch (err) { 
-      console.error("Add skill error"); 
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (err) { console.error("Add skill error"); }
+    finally { setIsSubmitting(false); }
   };
 
   const handleDelete = async (id) => {
     if (id.startsWith('root_')) return alert("Cannot delete your Core node");
-
     if (window.confirm(`Видалити "${skills[id].name}" та всіх нащадків?`)) {
       try {
-        await fetch(`${API_URL}/skills/${id}`, { 
+        await fetch(`${API_URL}/skills/${id}`, {
           method: 'DELETE',
           headers: { "Bypass-Tunnel-Reminder": "true" }
         });
@@ -150,7 +136,7 @@ function App() {
       });
       if (res.ok) {
         setIsEditingName(false);
-        fetchSkills(userId); // оновлюємо дерево
+        fetchSkills(userId);
       }
     } catch (err) { console.error("Rename error"); }
   };
@@ -162,16 +148,10 @@ function App() {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
   });
 
-
-
   if (!skills || !userId) {
     return (
       <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-        <motion.h2 
-          animate={{ opacity: [0.3, 0.7, 0.3] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          style={{ letterSpacing: '2px', fontSize: '12px' }}
-        >
+        <motion.h2 animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} style={{ letterSpacing: '2px', fontSize: '12px' }}>
           INITIALIZING PERSONAL NEURAL NETWORK...
         </motion.h2>
       </div>
@@ -180,29 +160,8 @@ function App() {
 
   return (
     <div style={{ background: '#020617', width: '100vw', height: '100vh', overflow: 'hidden', position: 'fixed', left: 0, top: 0, fontFamily: 'sans-serif' }}>
-      <header style={{ 
-        position: 'absolute', 
-        top: '20px', 
-        left: '0',
-        width: '100%', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        zIndex: 10, 
-        pointerEvents: 'none' 
-      }}>
-        {/* Блок профілю */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '10px', 
-          background: 'rgba(15, 23, 42, 0.6)', 
-          padding: '8px 16px', 
-          borderRadius: '20px',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          backdropFilter: 'blur(8px)',
-          marginBottom: '8px'
-        }}>
+      <header style={{ position: 'absolute', top: '20px', left: '0', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.2)', backdropFilter: 'blur(8px)', marginBottom: '8px' }}>
           {userAvatar ? (
             <img src={userAvatar} alt="avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #3b82f6' }} />
           ) : (
@@ -210,11 +169,8 @@ function App() {
               {firstName.charAt(0)}
             </div>
           )}
-          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>
-            {firstName.toUpperCase()}
-          </span>
+          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>{firstName.toUpperCase()}</span>
         </div>
-        
         <h2 style={{ color: '#fff', fontSize: '8px', letterSpacing: '3px', opacity: 0.4 }}>SYSTEM ACCESS GRANTED</h2>
       </header>
 
@@ -227,8 +183,7 @@ function App() {
                   const p1 = skills[data.parent].pos;
                   const p2 = data.pos;
                   return (
-                    <line key={`line-${id}`} x1={p1?.x} y1={p1?.y} x2={p2?.x} y2={p2?.y} 
-                      stroke={data.level > 0 ? "#3b82f6" : "#1e293b"} strokeWidth="2" style={{ opacity: 0.3 }} />
+                    <line key={`line-${id}`} x1={p1?.x} y1={p1?.y} x2={p2?.x} y2={p2?.y} stroke={data.level > 0 ? "#3b82f6" : "#1e293b"} strokeWidth="2" style={{ opacity: 0.3 }} />
                   );
                 }
                 return null;
@@ -260,227 +215,53 @@ function App() {
 
       <AnimatePresence>
         {showPopup && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}
-            onClick={() => { setShowPopup(false); setIsEditingName(false); }}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)', width: '100%', maxWidth: '300px' }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => { setShowPopup(false); setIsEditingName(false); }}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)', width: '100%', maxWidth: '300px' }} onClick={(e) => e.stopPropagation()}>
               {popupMode === 'menu' ? (
                 <>
-                  {/* Заголовок: ідеальне центрування та адаптивний інпут */}
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    marginBottom: '12px', 
-                    minHeight: '32px',
-                    position: 'relative'
-                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', minHeight: '32px', position: 'relative' }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       {isEditingName ? (
-                        <input 
-                          autoFocus
-                          value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          onBlur={handleRename}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                          style={{ 
-                            background: '#0f172a', 
-                            color: '#fff', 
-                            border: '1px solid #3b82f6', 
-                            borderRadius: '6px', 
-                            padding: '2px 10px', 
-                            textAlign: 'center', 
-                            fontSize: '18px', 
-                            fontWeight: 'bold',
-                            outline: 'none',
-                            width: `${Math.max(editedName.length, 5)}ch`, // Ширина залежить від кількості символів
-                            minWidth: '100px',
-                            maxWidth: '240px'
-                          }}
-                        />
+                        <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={{ background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', borderRadius: '6px', padding: '2px 10px', textAlign: 'center', fontSize: '18px', fontWeight: 'bold', outline: 'none', width: `${Math.max(editedName.length, 5)}ch`, minWidth: '100px', maxWidth: '240px' }} />
                       ) : (
                         <>
-                          <h2 style={{ 
-                            color: '#fff', 
-                            fontSize: '18px', 
-                            margin: 0, 
-                            textAlign: 'center',
-                            fontWeight: 'bold'
-                          }}>
-                            {skills[selectedSkill]?.name}
-                          </h2>
-                          <button 
-                            onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }}
-                            style={{ 
-                              position: 'absolute',
-                              left: '100%', // Олівець завжди праворуч від тексту
-                              marginLeft: '8px',
-                              background: 'none', 
-                              border: 'none', 
-                              cursor: 'pointer', 
-                              opacity: 0.5, 
-                              transition: 'opacity 0.2s',
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '4px'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                            onMouseLeave={(e) => e.currentTarget.style.opacity = 0.5}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
+                          <h2 style={{ color: '#fff', fontSize: '18px', margin: 0, textAlign: 'center', fontWeight: 'bold' }}>{skills[selectedSkill]?.name}</h2>
+                          <button onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }} style={{ position: 'absolute', left: '100%', marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignItems: 'center', padding: '4px' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                           </button>
                         </>
                       )}
                     </div>
                   </div>
-
-                  <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginBottom: '20px' }}>
-                    Level: {Math.floor(skills[selectedSkill]?.level)}%
-                  </p>
-
-                  {/* Кнопки / Статус Mastered */}
+                  <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginBottom: '20px' }}>Level: {Math.floor(skills[selectedSkill]?.level)}%</p>
                   {skills[selectedSkill]?.level < 100 ? (
-                    <button 
-                      onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} 
-                      style={menuButtonStyle("#3b82f6")}
-                    >
-                      ⚡ TRAIN SKILL
-                    </button>
+                    <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ TRAIN SKILL</button>
                   ) : (
-                    <div style={{ 
-                      width: '100%', 
-                      height: '42px', 
-                      marginBottom: '10px', 
-                      borderRadius: '10px', 
-                      border: '1px solid rgba(16, 185, 129, 0.4)', 
-                      color: '#10b981', 
-                      background: 'rgba(16, 185, 129, 0.05)', 
-                      fontWeight: 'bold', 
-                      fontSize: '13px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px',
-                      letterSpacing: '0.5px'
-                    }}>
-                      {/* SVG Трофей */}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-                        <path d="M4 22h16"></path>
-                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-                      </svg>
-                      
-                      <span style={{ lineHeight: '1' }}>MASTERED</span>
+                    <div style={{ width: '100%', height: '42px', marginBottom: '10px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981', background: 'rgba(16, 185, 129, 0.05)', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                      <span>MASTERED</span>
                     </div>
                   )}
-
                   <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD CHILD BRANCH</button>
-                    {!selectedSkill.startsWith('root_') && (
-                      <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE BRANCH</button>
-                    )}
-                    
-                    <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer', letterSpacing: '1px' }}>
-                      CANCEL
+                  {!selectedSkill.startsWith('root_') && (
+                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE BRANCH</button>
+                  )}
+                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer' }}>CANCEL</button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '16px', textAlign: 'center', fontWeight: '600', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
+                  </h3>
+                  <input ref={inputRef} autoFocus value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()} placeholder="Enter skill name..." style={{ width: '100%', maxWidth: '240px', padding: '10px 14px', borderRadius: '10px', background: '#0f172a', color: '#fff', border: '1px solid #334155', marginBottom: '20px', outline: 'none' }} />
+                  <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '240px' }}>
+                    <button onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px', fontWeight: '600' }}>BACK</button>
+                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '10px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 'bold', opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1 }}>
+                      {isSubmitting ? '...' : 'CREATE'}
                     </button>
-                  </>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                    <h3 style={{ 
-                      color: '#fff', 
-                      fontSize: '14px', 
-                      marginBottom: '16px', 
-                      textAlign: 'center',
-                      fontWeight: '600',
-                      opacity: 0.9,
-                      width: '100%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
-                    </h3>
-                    
-                    <input 
-                      ref={inputRef} 
-                      autoFocus
-                      value={newSkillName} 
-                      onChange={(e) => setNewSkillName(e.target.value)} 
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
-                      placeholder="Enter skill name..." 
-                      style={{ 
-                        width: '100%',
-                        maxWidth: '240px', 
-                        padding: '10px 14px', 
-                        borderRadius: '10px', 
-                        background: '#0f172a', 
-                        color: '#fff', 
-                        border: '1px solid #334155', 
-                        marginBottom: '20px', 
-                        fontSize: '15px', 
-                        outline: 'none',
-                        transition: 'all 0.2s',
-                        textAlign: 'left'
-                      }} 
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
-                        e.target.style.boxShadow = '0 0 0 1px rgba(59, 130, 246, 0.2)';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#334155';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    />
-                    
-                    <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '240px' }}>
-                      <button 
-                        onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} 
-                        style={{ 
-                          flex: 1, 
-                          padding: '10px', 
-                          borderRadius: '10px', 
-                          background: '#334155', 
-                          color: '#fff', 
-                          border: 'none', 
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '600'
-                        }}
-                      >
-                        BACK
-                      </button>
-                      <button 
-                        onClick={handleAddSkill} 
-                        disabled={isSubmitting || !newSkillName.trim()} 
-                        style={{ 
-                          flex: 1.5, 
-                          padding: '10px', 
-                          borderRadius: '10px', 
-                          background: '#3b82f6', 
-                          color: '#fff', 
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: 'bold',
-                          opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1,
-                          cursor: (isSubmitting || !newSkillName.trim()) ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        {isSubmitting ? '...' : 'CREATE'}
-                      </button>
-                    </div>
                   </div>
-                )}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
