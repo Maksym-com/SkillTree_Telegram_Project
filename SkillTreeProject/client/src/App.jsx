@@ -71,17 +71,44 @@ function App() {
   const handleAddSkill = async () => {
     if (!newSkillName.trim() || isSubmitting) return;
     setIsSubmitting(true);
+
+    // Генеруємо унікальний ID, який вимагає бекенд
+    const newId = `skill_${Math.random().toString(36).substr(2, 9)}`;
+
+    const payload = {
+      id: newId,                // ДОДАНО: те саме поле, якого не вистачало
+      name: newSkillName.trim(),
+      parent_id: selectedSkill, 
+      user_id: Number(userId)
+    };
+
+    console.log("Sending payload:", payload); // Для перевірки в консолі
+
     try {
       const res = await fetch(`${API_URL}/skills/add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
-        body: JSON.stringify({ name: newSkillName.trim(), parent_id: selectedSkill, user_id: userId })
+        headers: { 
+          'Content-Type': 'application/json',
+          "Bypass-Tunnel-Reminder": "true" 
+        },
+        body: JSON.stringify(payload)
       });
+
       if (res.ok) {
-        setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId);
+        setNewSkillName('');
+        setPopupMode('menu');
+        setShowPopup(false);
+        fetchSkills(userId);
+      } else {
+        const errorData = await res.json();
+        console.error("Server error details:", errorData);
+        alert("Помилка при додаванні: перевірте консоль");
       }
-    } catch (err) { console.error("Add error"); }
-    finally { setIsSubmitting(false); }
+    } catch (err) {
+      console.error("Add error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDelete = async (id) => {
