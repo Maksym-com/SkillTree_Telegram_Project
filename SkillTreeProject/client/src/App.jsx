@@ -179,8 +179,19 @@ function App() {
   if (!treeData) return <div style={{ background: '#020617', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>GROWING NEURAL FOREST...</div>;
 
   return (
-    <div style={{ background: '#020617', width: '100vw', height: '100vh', position: 'fixed', overflow: 'hidden', fontFamily: 'sans-serif' }}>
-      
+    <div style={{ 
+      background: '#020617',
+      width: '100vw',
+      height: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      margin: 0,
+      padding: 0,
+      overflow: 'hidden',
+      fontFamily: 'sans-serif'
+    }}>
+
       {/* HUD Header */}
       <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', backdropFilter: 'blur(10px)' }}>
