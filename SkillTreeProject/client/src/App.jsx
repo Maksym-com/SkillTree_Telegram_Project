@@ -16,16 +16,14 @@ function App() {
   const [firstName, setFirstName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
-  // Зберігаємо ручні зсуви: { [skillId]: { x: 0, y: 0 } }
+  
+  // DRAG STATE
   const [offsets, setOffsets] = useState({});
-  // Стан для відстеження, який вузол зараз можна рухати
   const [draggableId, setDraggableId] = useState(null);
   const longPressTimer = useRef(null);
 
   const inputRef = useRef(null);
   const tg = window.Telegram?.WebApp;
-
-  // --- API LOGIC ---
 
   const fetchSkills = useCallback(async (uid) => {
     if (!uid) return;
@@ -64,8 +62,30 @@ function App() {
     initApp();
   }, [fetchSkills]);
 
-  // --- ACTIONS ---
+  // --- DRAG HANDLERS ---
+  const handlePointerDown = (id) => {
+    longPressTimer.current = setTimeout(() => {
+      setDraggableId(id);
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
+    }, 2000); // 2 секунди затискання
+  };
 
+  const handlePointerUp = () => {
+    clearTimeout(longPressTimer.current);
+  };
+
+  const handleDragEnd = (id, info) => {
+    setOffsets(prev => ({
+      ...prev,
+      [id]: {
+        x: (prev[id]?.x || 0) + info.offset.x,
+        y: (prev[id]?.y || 0) + info.offset.y
+      }
+    }));
+    setDraggableId(null);
+  };
+
+  // --- ACTIONS ---
   const trainSkill = async (id) => {
     try {
       await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
@@ -76,49 +96,21 @@ function App() {
   const handleAddSkill = async () => {
     if (!newSkillName.trim() || isSubmitting) return;
     setIsSubmitting(true);
-
-    // Генеруємо унікальний ID, який вимагає бекенд
     const newId = `skill_${Math.random().toString(36).substr(2, 9)}`;
-
-    const payload = {
-      id: newId,                // ДОДАНО: те саме поле, якого не вистачало
-      name: newSkillName.trim(),
-      parent_id: selectedSkill, 
-      user_id: Number(userId)
-    };
-
-    console.log("Sending payload:", payload); // Для перевірки в консолі
-
+    const payload = { id: newId, name: newSkillName.trim(), parent_id: selectedSkill, user_id: Number(userId) };
     try {
       const res = await fetch(`${API_URL}/skills/add`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          "Bypass-Tunnel-Reminder": "true" 
-        },
+        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
         body: JSON.stringify(payload)
       });
-
-      if (res.ok) {
-        setNewSkillName('');
-        setPopupMode('menu');
-        setShowPopup(false);
-        fetchSkills(userId);
-      } else {
-        const errorData = await res.json();
-        console.error("Server error details:", errorData);
-        alert("Помилка при додаванні: перевірте консоль");
-      }
-    } catch (err) {
-      console.error("Add error:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
+      if (res.ok) { setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId); }
+    } catch (err) { console.error("Add error"); } finally { setIsSubmitting(false); }
   };
 
   const handleDelete = async (id) => {
     if (id.startsWith('root_')) return;
-    if (window.confirm("Delete this branch and all children?")) {
+    if (window.confirm("Delete this branch?")) {
       try {
         await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
         setShowPopup(false); fetchSkills(userId);
@@ -138,232 +130,92 @@ function App() {
     } catch (err) { console.error("Rename error"); }
   };
 
-  const handlePointerDown = (id) => {
-    // Починаємо відлік 2 секунд
-    longPressTimer.current = setTimeout(() => {
-      setDraggableId(id);
-      // Можна додати вібрацію на телефоні, щоб юзер відчув "активацію"
-      if (window.navigator.vibrate) window.navigator.vibrate(50);
-    }, 2000);
-  };
-
-  const handlePointerUp = () => {
-    clearTimeout(longPressTimer.current);
-  };
-
-  const handleDragEnd = (id, info) => {
-    // Оновлюємо офсет після завершення перетягування
-    setOffsets(prev => ({
-      ...prev,
-      [id]: {
-        x: (prev[id]?.x || 0) + info.offset.x,
-        y: (prev[id]?.y || 0) + info.offset.y
-      }
-    }));
-    setDraggableId(null); // Вимикаємо режим перетягування
-  };
-
-  // --- DYNAMIC TREE LAYOUT ---
-
+  // --- TREE LAYOUT ---
   const treeData = useMemo(() => {
     if (!skills) return null;
     const result = {};
-    const centerX = 1000;
-    const startY = 1750;
-    const verticalSpacing = 200;
-    const baseSpread = 80;
+    const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
 
     const build = (id, x, y, angle = -90, depth = 0) => {
-      const children = Object.entries(skills)
-        .filter(([_, s]) => s.parent === id)
-        .map(([cid]) => cid);
-
-      // --- ВАЖЛИВА ПРАВКА ТУТ ---
-      // Отримуємо ручний зсув для цього конкретного ID (якщо він є)
+      const children = Object.entries(skills).filter(([_, s]) => s.parent === id).map(([cid]) => cid);
       const offset = offsets[id] || { x: 0, y: 0 };
-
-      result[id] = { 
-        ...skills[id], 
-        // Додаємо офсет до базових координат
-        pos: { x: x + offset.x, y: y + offset.y }, 
-        depth 
-      };
-      // --------------------------
-
+      result[id] = { ...skills[id], pos: { x: x + offset.x, y: y + offset.y }, depth };
+      
       if (!children.length) return;
       const spread = baseSpread / (depth + 0.8);
       const startAngle = angle - spread / 2;
-
       children.forEach((childId, index) => {
         const childAngle = startAngle + (spread / (children.length - 1 || 1)) * index;
         const rad = (childAngle * Math.PI) / 180;
         const length = verticalSpacing - (depth * 15);
-        const childX = x + Math.cos(rad) * length;
-        const childY = y + Math.sin(rad) * length;
-        build(childId, childX, childY, childAngle, depth + 1);
+        build(childId, x + Math.cos(rad) * length, y + Math.sin(rad) * length, childAngle, depth + 1);
       });
     };
 
     const rootId = Object.keys(skills).find(id => id.startsWith("root_"));
     if (rootId) build(rootId, centerX, startY);
     return result;
-  }, [skills, offsets]); // offsets обов'язково в залежностях
+  }, [skills, offsets]);
 
-
-  // --- STYLES (Оновлені для запобігання зсувам) ---
   const menuButtonStyle = (color) => ({
-    display: 'block',
-    width: '100%', 
-    padding: '14px 0', // Паддінг тільки зверху/знизу, щоб текст не тиснув на краї
-    marginBottom: '10px', 
-    borderRadius: '12px',
-    border: `1px solid ${color}`, 
-    background: 'rgba(15, 23, 42, 0.4)',
-    color: color, 
-    fontWeight: 'bold', 
-    cursor: 'pointer', 
-    fontSize: '13px',
-    textAlign: 'center',
-    boxSizing: 'border-box'
+    display: 'block', width: '100%', padding: '14px 0', marginBottom: '10px', borderRadius: '12px',
+    border: `1px solid ${color}`, background: 'rgba(15, 23, 42, 0.4)', color: color, fontWeight: 'bold', fontSize: '13px', textAlign: 'center'
   });
 
-  const inputStyle = {
-    display: 'block',
-    width: '100%', // Тепер це буде працювати правильно з box-sizing
-    background: '#0f172a',
-    color: '#fff',
-    border: '1px solid #334155',
-    padding: '12px 15px',
-    borderRadius: '10px',
-    fontSize: '16px', // 16px запобігає авто-зуму на iPhone
-    outline: 'none',
-    boxSizing: 'border-box',
-    marginBottom: '15px',
-    appearance: 'none', // Прибираємо стандартні стилі iOS
-    WebkitAppearance: 'none'
-  };
-
-    if (!skills || !userId) {
-    return (
-      <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-        <motion.h2 animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} style={{ letterSpacing: '2px', fontSize: '12px' }}>
-          INITIALIZING PERSONAL NEURAL NETWORK...
-        </motion.h2>
-      </div>
-    );
-  }
+  if (!skills || !userId) return <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>LOADING...</div>;
 
   return (
-    <div style={{ 
-      background: '#020617',
-      width: '100vw',
-      height: '100vh',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      fontFamily: 'sans-serif'
-    }}>
-
-      {/* HUD Header */}
-      <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
+    <div style={{ background: '#020617', width: '100vw', height: '100vh', position: 'fixed', overflow: 'hidden', fontFamily: 'sans-serif' }}>
+      <header style={{ position: 'absolute', top: '20px', width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', backdropFilter: 'blur(10px)' }}>
-          {userAvatar ? <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} /> : <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6' }} />}
-          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{firstName.toUpperCase() || 'USER'}</span>
+          {userAvatar && <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
+          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{firstName.toUpperCase()}</span>
         </div>
       </header>
 
-      <TransformWrapper 
-        initialScale={0.6} 
-        centerOnInit 
-        minScale={0.2} 
-        maxScale={2} 
-        limitToBounds={false}
-      >
+      <TransformWrapper initialScale={0.6} centerOnInit minScale={0.1} limitToBounds={false}>
         <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
           <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
             
             <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
               <defs>
                 <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" /><stop offset="100%" stopColor="#020617" stopOpacity="0" />
                 </linearGradient>
               </defs>
-
-              {/* Trunk Base - з плавним зникненням */}
               <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
-
-              {Object.entries(treeData).map(([id, data]) => (
-                <div key={id} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggableId === id ? 100 : 5 }}>
-                  <motion.div 
-                    // Активація перетягування
-                    drag={draggableId === id}
-                    dragMomentum={false}
-                    onDragEnd={(e, info) => handleDragEnd(id, info)}
-                    
-                    // Обробка довгого натискання
-                    onPointerDown={() => handlePointerDown(id)}
-                    onPointerUp={handlePointerUp}
-                    onPointerLeave={handlePointerUp}
-                    
-                    onClick={() => { 
-                      // Відкриваємо попап тільки якщо не було перетягування
-                      if (!draggableId) {
-                        setSelectedSkill(id); 
-                        setPopupMode('menu'); 
-                        setShowPopup(true); 
-                      }
-                    }} 
-                    
-                    whileHover={{ scale: 1.1 }}
-                    animate={{ 
-                      scale: draggableId === id ? 1.3 : 1,
-                      boxShadow: draggableId === id ? "0 0 25px #3b82f6" : "none" 
-                    }}
-                  >
-                    <div style={{
-                      width: data.depth === 0 ? '36px' : '24px',
-                      height: data.depth === 0 ? '36px' : '24px',
-                      background: draggableId === id ? '#f59e0b' : (data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b'),
-                      transform: 'rotate(45deg)',
-                      border: draggableId === id ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
-                      boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none',
-                      cursor: draggableId === id ? 'grabbing' : 'pointer',
-                      transition: 'background 0.3s'
-                    }} />
-                    
-                    {/* Підпис навички */}
-                    <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', pointerEvents: 'none' }}>
-                      <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                      <div style={{ color: '#3b82f6', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
-                    </div>
-                  </motion.div>
-                </div>
-              ))}
+              {Object.entries(treeData).map(([id, data]) => {
+                const parent = treeData[data.parent];
+                if (!parent) return null;
+                return (
+                  <path key={`line-${id}`}
+                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
+                    stroke={data.level > 0 ? "#3b82f6" : "#1e293b"} strokeWidth={Math.max(2, 10 - data.depth * 2)} fill="none" style={{ opacity: 0.5, transition: 'all 0.1s' }}
+                  />
+                );
+              })}
             </svg>
 
             {Object.entries(treeData).map(([id, data]) => (
-              <div key={id} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
+              <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggableId === id ? 100 : 5 }}>
                 <motion.div 
-                  onClick={() => { setSelectedSkill(id); setPopupMode('menu'); setShowPopup(true); }} 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  drag={draggableId === id}
+                  dragMomentum={false}
+                  onDragEnd={(e, info) => handleDragEnd(id, info)}
+                  onPointerDown={() => handlePointerDown(id)}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerUp}
+                  onClick={() => { if (!draggableId) { setSelectedSkill(id); setPopupMode('menu'); setShowPopup(true); } }}
+                  animate={{ scale: draggableId === id ? 1.3 : 1 }}
                 >
                   <div style={{
-                    width: data.depth === 0 ? '36px' : '24px',
-                    height: data.depth === 0 ? '36px' : '24px',
-                    background: data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b',
-                    transform: 'rotate(45deg)', // Ромб замість кліп-пасу для стабільності
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none',
-                    cursor: 'pointer'
+                    width: data.depth === 0 ? '36px' : '24px', height: data.depth === 0 ? '36px' : '24px',
+                    background: draggableId === id ? '#f59e0b' : (data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b'),
+                    transform: 'rotate(45deg)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none', cursor: draggableId === id ? 'grabbing' : 'pointer'
                   }} />
-                  <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', pointerEvents: 'none' }}>
                     <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                    <div style={{ color: '#3b82f6', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
+                    <div style={{ color: '#3b82f6' }}>{Math.floor(data.level)}%</div>
                   </div>
                 </motion.div>
               </div>
