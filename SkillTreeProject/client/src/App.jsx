@@ -142,13 +142,34 @@ function App() {
     return result;
   }, [skills]);
 
-  // --- STYLES ---
 
+  // --- STYLES (Оновлені для запобігання зсувам) ---
   const menuButtonStyle = (color) => ({
-    width: '100%', padding: '14px', marginBottom: '10px', borderRadius: '12px',
-    border: `1px solid ${color}`, background: 'rgba(15, 23, 42, 0.4)',
-    color: color, fontWeight: 'bold', cursor: 'pointer', fontSize: '13px'
+    width: '100%', 
+    padding: '14px', 
+    marginBottom: '10px', 
+    borderRadius: '12px',
+    border: `1px solid ${color}`, 
+    background: 'rgba(15, 23, 42, 0.4)',
+    color: color, 
+    fontWeight: 'bold', 
+    cursor: 'pointer', 
+    fontSize: '13px',
+    boxSizing: 'border-box' // Важливо, щоб не вилазило за краї
   });
+
+  const inputStyle = {
+    width: '100%',
+    background: '#0f172a',
+    color: '#fff',
+    border: '1px solid #334155',
+    padding: '12px',
+    borderRadius: '10px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box', // Щоб padding не ламав ширину
+    marginBottom: '10px'
+  };
 
   if (!treeData) return <div style={{ background: '#020617', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>GROWING NEURAL FOREST...</div>;
 
@@ -156,33 +177,43 @@ function App() {
     <div style={{ background: '#020617', width: '100vw', height: '100vh', position: 'fixed', overflow: 'hidden', fontFamily: 'sans-serif' }}>
       
       {/* HUD Header */}
-      <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.2)', backdropFilter: 'blur(8px)' }}>
+      <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', backdropFilter: 'blur(10px)' }}>
           {userAvatar ? <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} /> : <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6' }} />}
-          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{firstName.toUpperCase() || 'USER'}</span>
+          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{firstName.toUpperCase() || 'USER'}</span>
         </div>
       </header>
 
-      <TransformWrapper initialScale={0.6} centerOnInit minScale={0.1} maxScale={2} limitToBounds={false}>
+      <TransformWrapper 
+        initialScale={0.6} 
+        centerOnInit 
+        minScale={0.2} 
+        maxScale={2} 
+        limitToBounds={false}
+      >
         <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
           <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
             
-            <svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
-              {/* Trunk Base */}
-              <rect x="985" y="1750" width="30" height="250" fill="url(#trunkGradient)" />
+            <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
               <defs>
-                <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#334155" /><stop offset="100%" stopColor="#020617" /></linearGradient>
+                <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+                </linearGradient>
               </defs>
+
+              {/* Trunk Base - з плавним зникненням */}
+              <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
 
               {Object.entries(treeData).map(([id, data]) => {
                 if (!data.parent || !treeData[data.parent]) return null;
                 const parent = treeData[data.parent];
-                const thickness = Math.max(2, 12 - data.depth * 2.5);
+                const thickness = Math.max(2, 10 - data.depth * 2);
                 return (
                   <path key={`branch-${id}`}
-                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 30} ${data.pos.x} ${data.pos.y}`}
+                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
                     stroke={data.level > 0 ? "#3b82f6" : "#1e293b"}
-                    strokeWidth={thickness} fill="none" strokeLinecap="round" style={{ opacity: 0.6, transition: 'all 0.5s' }}
+                    strokeWidth={thickness} fill="none" strokeLinecap="round" style={{ opacity: 0.5, transition: 'all 0.5s' }}
                   />
                 );
               })}
@@ -190,19 +221,23 @@ function App() {
 
             {Object.entries(treeData).map(([id, data]) => (
               <div key={id} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: 5 }}>
-                <motion.div onClick={() => { setSelectedSkill(id); setPopupMode('menu'); setShowPopup(true); }} whileTap={{ scale: 0.9 }}>
+                <motion.div 
+                  onClick={() => { setSelectedSkill(id); setPopupMode('menu'); setShowPopup(true); }} 
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
                   <div style={{
-                    width: data.depth === 0 ? '40px' : '28px',
-                    height: data.depth === 0 ? '40px' : '38px',
+                    width: data.depth === 0 ? '36px' : '24px',
+                    height: data.depth === 0 ? '36px' : '24px',
                     background: data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b',
-                    clipPath: "polygon(50% 0%, 100% 60%, 50% 100%, 0% 60%)",
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: data.level > 0 ? `0 0 15px #3b82f6` : 'none',
+                    transform: 'rotate(45deg)', // Ромб замість кліп-пасу для стабільності
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none',
                     cursor: 'pointer'
                   }} />
-                  <div style={{ position: 'absolute', top: '100%', marginTop: '8px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', textShadow: '0 2px 4px #000' }}>
-                    {data.name}
-                    <div style={{ color: '#3b82f6', fontSize: '8px' }}>{Math.floor(data.level)}%</div>
+                  <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                    <div style={{ fontWeight: 'bold' }}>{data.name}</div>
+                    <div style={{ color: '#3b82f6', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
                   </div>
                 </motion.div>
               </div>
@@ -214,43 +249,36 @@ function App() {
       <AnimatePresence>
         {showPopup && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}
             onClick={() => { setShowPopup(false); setIsEditingName(false); }}
           >
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid #334155', width: '100%', maxWidth: '300px' }}
+              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid #334155', width: '100%', maxWidth: '320px', boxSizing: 'border-box' }}
               onClick={(e) => e.stopPropagation()}
             >
               {popupMode === 'menu' ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '15px' }}>
                     {isEditingName ? (
-                      <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                        style={{ background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', borderRadius: '6px', padding: '4px', textAlign: 'center', width: '100%' }} />
+                      <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={inputStyle} />
                     ) : (
-                      <h2 onClick={() => { setIsEditingName(true); setEditedName(treeData[selectedSkill]?.name); }} style={{ color: '#fff', fontSize: '18px', cursor: 'pointer' }}>{treeData[selectedSkill]?.name} ✎</h2>
+                      <h2 onClick={() => { setIsEditingName(true); setEditedName(treeData[selectedSkill]?.name); }} style={{ color: '#fff', fontSize: '20px', cursor: 'pointer', margin: 0 }}>{treeData[selectedSkill]?.name} ✎</h2>
                     )}
+                    <p style={{ color: '#64748b', fontSize: '12px', marginTop: '5px' }}>Progress: {Math.floor(treeData[selectedSkill]?.level)}%</p>
                   </div>
-                  <p style={{ color: '#64748b', textAlign: 'center', fontSize: '12px', marginBottom: '20px' }}>Progress: {Math.floor(treeData[selectedSkill]?.level)}%</p>
                   
-                  {treeData[selectedSkill]?.level < 100 ? (
-                    <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ TRAIN SKILL</button>
-                  ) : (
-                    <div style={{ color: '#10b981', textAlign: 'center', fontWeight: 'bold', marginBottom: '10px' }}>MASTERED</div>
-                  )}
-                  
+                  <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ TRAIN SKILL</button>
                   <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD BRANCH</button>
                   {!selectedSkill.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE</button>}
-                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', background: 'none', border: 'none', color: '#475569', marginTop: '10px', cursor: 'pointer' }}>CLOSE</button>
+                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', background: 'none', border: 'none', color: '#475569', marginTop: '10px', cursor: 'pointer', fontSize: '12px' }}>CLOSE</button>
                 </>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <h3 style={{ color: '#fff', fontSize: '14px' }}>NEW SKILL UNDER {treeData[selectedSkill]?.name}</h3>
-                  <input autoFocus value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="Skill name..."
-                    style={{ background: '#0f172a', color: '#fff', border: '1px solid #334155', padding: '12px', borderRadius: '10px' }} />
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: '#334155', color: '#fff', border: 'none' }}>BACK</button>
-                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '10px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}>CREATE</button>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '15px', textAlign: 'center' }}>NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{treeData[selectedSkill]?.name}</span></h3>
+                  <input autoFocus value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="Skill name..." style={inputStyle} />
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                    <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 'bold' }}>BACK</button>
+                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '12px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '13px' }}>CREATE</button>
                   </div>
                 </div>
               )}
