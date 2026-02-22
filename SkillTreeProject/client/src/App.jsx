@@ -18,9 +18,8 @@ function App() {
   const [editedName, setEditedName] = useState('');
   
   // DRAG STATE
+  const [draggingId, setDraggingId] = useState(null);
   const [offsets, setOffsets] = useState({});
-  const [draggableId, setDraggableId] = useState(null);
-  const longPressTimer = useRef(null);
 
   const inputRef = useRef(null);
   const tg = window.Telegram?.WebApp;
@@ -62,28 +61,6 @@ function App() {
     initApp();
   }, [fetchSkills]);
 
-  // --- DRAG HANDLERS ---
-  const handlePointerDown = (id) => {
-    longPressTimer.current = setTimeout(() => {
-      setDraggableId(id);
-      if (window.navigator.vibrate) window.navigator.vibrate(50);
-    }, 2000); // 2 секунди затискання
-  };
-
-  const handlePointerUp = () => {
-    clearTimeout(longPressTimer.current);
-  };
-
-  const handleDragEnd = (id, info) => {
-    setOffsets(prev => ({
-      ...prev,
-      [id]: {
-        x: (prev[id]?.x || 0) + info.offset.x,
-        y: (prev[id]?.y || 0) + info.offset.y
-      }
-    }));
-    setDraggableId(null);
-  };
 
   // --- ACTIONS ---
   const trainSkill = async (id) => {
@@ -190,7 +167,7 @@ function App() {
         centerOnInit 
         minScale={0.1} 
         limitToBounds={false}
-        panning={{ disabled: draggableId !== null }} 
+        panning={{ disabled: draggingId !== null }} 
       >
         <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
           <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
@@ -215,27 +192,34 @@ function App() {
             </svg>
 
             {Object.entries(treeData).map(([id, data]) => (
-              <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggableId === id ? 100 : 5 }}>
+              <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
                 <motion.div 
-                  drag={draggableId === id}
+                  drag
+                  dragElastic={0.15}
                   dragMomentum={false}
-                  dragPropagation={false}
-                  onDragEnd={(e, info) => handleDragEnd(id, info)}
-                  onPointerDown={() => handlePointerDown(id)}
-                  onPointerUp={handlePointerUp}
-                  onPointerLeave={handlePointerUp}
-                  onClick={() => { if (!draggableId) { setSelectedSkill(id); setPopupMode('menu'); setShowPopup(true); } }}
-                  animate={{ scale: draggableId === id ? 1.3 : 1 }}
+                  dragConstraints={false}
+                  dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                  onDragStart={() => setDraggingId(id)}
+                  onDrag={(e, info) => {
+                    setOffsets(prev => ({
+                      ...prev,
+                      [id]: {
+                        x: (prev[id]?.x || 0) + info.delta.x,
+                        y: (prev[id]?.y || 0) + info.delta.y
+                      }
+                    }));
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
+                  whileDrag={{ scale: 1.2 }}
+                  animate={{ scale: draggingId === id ? 1.2 : 1 }}
+                  onClick={() => {
+                    if (!draggingId) {
+                      setSelectedSkill(id);
+                      setPopupMode('menu');
+                      setShowPopup(true);
+                    }
+                  }}
                 >
-                  <div style={{
-                    width: data.depth === 0 ? '36px' : '24px', height: data.depth === 0 ? '36px' : '24px',
-                    background: draggableId === id ? '#f59e0b' : (data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b'),
-                    transform: 'rotate(45deg)', border: '1px solid rgba(255,255,255,0.2)', boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none', cursor: draggableId === id ? 'grabbing' : 'pointer'
-                  }} />
-                  <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', pointerEvents: 'none' }}>
-                    <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                    <div style={{ color: '#3b82f6' }}>{Math.floor(data.level)}%</div>
-                  </div>
                 </motion.div>
               </div>
             ))}
