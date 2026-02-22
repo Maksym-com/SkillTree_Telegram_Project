@@ -165,7 +165,19 @@ function App() {
   if (!skills || !userId) return <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>LOADING...</div>;
 
   return (
-    <div style={{ background: '#020617', width: '100vw', height: '100vh', position: 'fixed', overflow: 'hidden', fontFamily: 'sans-serif' }}>
+    <div style={{ 
+      background: '#020617',
+      width: '100vw',
+      height: '100vh',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      margin: 0,
+      padding: 0,
+      overflow: 'hidden',
+      fontFamily: 'sans-serif'
+    }}>
+
       <header style={{ position: 'absolute', top: '20px', width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', backdropFilter: 'blur(10px)' }}>
           {userAvatar && <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
@@ -173,7 +185,13 @@ function App() {
         </div>
       </header>
 
-      <TransformWrapper initialScale={0.6} centerOnInit minScale={0.1} limitToBounds={false}>
+      <TransformWrapper
+        initialScale={0.6} 
+        centerOnInit 
+        minScale={0.1} 
+        limitToBounds={false}
+        panning={{ disabled: draggableId !== null }} 
+      >
         <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
           <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
             
@@ -201,6 +219,7 @@ function App() {
                 <motion.div 
                   drag={draggableId === id}
                   dragMomentum={false}
+                  dragPropagation={false}
                   onDragEnd={(e, info) => handleDragEnd(id, info)}
                   onPointerDown={() => handlePointerDown(id)}
                   onPointerUp={handlePointerUp}
