@@ -193,34 +193,67 @@ function App() {
 
             {Object.entries(treeData).map(([id, data]) => (
               <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
-                <motion.div 
-                  drag
-                  dragElastic={0.15}
-                  dragMomentum={false}
-                  dragConstraints={false}
-                  dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-                  onDragStart={() => setDraggingId(id)}
-                  onDrag={(e, info) => {
-                    setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
-                        x: (prev[id]?.x || 0) + info.delta.x,
-                        y: (prev[id]?.y || 0) + info.delta.y
-                      }
-                    }));
-                  }}
-                  onDragEnd={() => setDraggingId(null)}
-                  whileDrag={{ scale: 1.2 }}
-                  animate={{ scale: draggingId === id ? 1.2 : 1 }}
-                  onClick={() => {
-                    if (!draggingId) {
-                      setSelectedSkill(id);
-                      setPopupMode('menu');
-                      setShowPopup(true);
+              <motion.div 
+                drag
+                dragElastic={0.15}
+                dragMomentum={false}
+                dragConstraints={{ left: -500, right: 500, top: -500, bottom: 500 }}
+                dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                onDragStart={() => setDraggingId(id)}
+                onDrag={(e, info) => {
+                  setOffsets(prev => ({
+                    ...prev,
+                    [id]: {
+                      x: (prev[id]?.x || 0) + info.delta.x,
+                      y: (prev[id]?.y || 0) + info.delta.y
                     }
-                  }}
-                >
-                </motion.div>
+                  }));
+                }}
+                onDragEnd={() => setDraggingId(null)}
+                whileDrag={{ scale: 1.2 }}
+                animate={{ scale: draggingId === id ? 1.2 : 1 }}
+                onClick={() => {
+                  if (!draggingId) {
+                    setSelectedSkill(id);
+                    setPopupMode('menu');
+                    setShowPopup(true);
+                  }
+                }}
+              >
+                <div style={{
+                  width: data.depth === 0 ? '36px' : '24px',
+                  height: data.depth === 0 ? '36px' : '24px',
+                  background: draggingId === id 
+                    ? '#f59e0b' 
+                    : (data.level >= 100 
+                      ? '#60a5fa' 
+                      : data.level > 0 
+                        ? '#2563eb' 
+                        : '#1e293b'),
+                  transform: 'rotate(45deg)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  boxShadow: data.level > 0 
+                    ? `0 0 15px rgba(59, 130, 246, 0.5)` 
+                    : 'none',
+                  cursor: 'grab'
+                }} />
+
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginTop: '12px',
+                  color: '#fff',
+                  fontSize: '10px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  pointerEvents: 'none'
+                }}>
+                  <div style={{ fontWeight: 'bold' }}>{data.name}</div>
+                  <div style={{ color: '#3b82f6' }}>{Math.floor(data.level)}%</div>
+                </div>
+              </motion.div>
               </div>
             ))}
           </div>
