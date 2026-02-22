@@ -145,8 +145,9 @@ function App() {
 
   // --- STYLES (Оновлені для запобігання зсувам) ---
   const menuButtonStyle = (color) => ({
+    display: 'block',
     width: '100%', 
-    padding: '14px', 
+    padding: '14px 0', // Паддінг тільки зверху/знизу, щоб текст не тиснув на краї
     marginBottom: '10px', 
     borderRadius: '12px',
     border: `1px solid ${color}`, 
@@ -155,20 +156,24 @@ function App() {
     fontWeight: 'bold', 
     cursor: 'pointer', 
     fontSize: '13px',
-    boxSizing: 'border-box' // Важливо, щоб не вилазило за краї
+    textAlign: 'center',
+    boxSizing: 'border-box'
   });
 
   const inputStyle = {
-    width: '100%',
+    display: 'block',
+    width: '100%', // Тепер це буде працювати правильно з box-sizing
     background: '#0f172a',
     color: '#fff',
     border: '1px solid #334155',
-    padding: '12px',
+    padding: '12px 15px',
     borderRadius: '10px',
-    fontSize: '14px',
+    fontSize: '16px', // 16px запобігає авто-зуму на iPhone
     outline: 'none',
-    boxSizing: 'border-box', // Щоб padding не ламав ширину
-    marginBottom: '10px'
+    boxSizing: 'border-box',
+    marginBottom: '15px',
+    appearance: 'none', // Прибираємо стандартні стилі iOS
+    WebkitAppearance: 'none'
   };
 
   if (!treeData) return <div style={{ background: '#020617', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>GROWING NEURAL FOREST...</div>;
@@ -249,36 +254,79 @@ function App() {
       <AnimatePresence>
         {showPopup && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.85)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}
+            style={{ 
+              position: 'fixed', 
+              inset: 0, 
+              background: 'rgba(2,6,23,0.9)', 
+              backdropFilter: 'blur(8px)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              zIndex: 1000, 
+              padding: '20px' 
+            }}
             onClick={() => { setShowPopup(false); setIsEditingName(false); }}
           >
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid #334155', width: '100%', maxWidth: '320px', boxSizing: 'border-box' }}
+              style={{ 
+                background: '#1e293b', 
+                padding: '25px', 
+                borderRadius: '24px', 
+                border: '1px solid #334155', 
+                width: '100%', 
+                maxWidth: '290px', // Трохи зменшив, щоб було більше місця по боках на малих екранах
+                boxSizing: 'border-box',
+                position: 'relative',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               {popupMode === 'menu' ? (
-                <>
-                  <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                <div style={{ width: '100%' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                     {isEditingName ? (
                       <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={inputStyle} />
                     ) : (
-                      <h2 onClick={() => { setIsEditingName(true); setEditedName(treeData[selectedSkill]?.name); }} style={{ color: '#fff', fontSize: '20px', cursor: 'pointer', margin: 0 }}>{treeData[selectedSkill]?.name} ✎</h2>
+                      <h2 onClick={() => { setIsEditingName(true); setEditedName(treeData[selectedSkill]?.name); }} 
+                          style={{ color: '#fff', fontSize: '20px', cursor: 'pointer', margin: 0, wordBreak: 'break-word' }}>
+                        {treeData[selectedSkill]?.name} <span style={{fontSize: '14px', opacity: 0.5}}>✎</span>
+                      </h2>
                     )}
-                    <p style={{ color: '#64748b', fontSize: '12px', marginTop: '5px' }}>Progress: {Math.floor(treeData[selectedSkill]?.level)}%</p>
+                    <div style={{ color: '#3b82f6', fontSize: '13px', marginTop: '8px', fontWeight: 'bold' }}>
+                      Рівень: {Math.floor(treeData[selectedSkill]?.level)}%
+                    </div>
                   </div>
                   
-                  <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ TRAIN SKILL</button>
-                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD BRANCH</button>
-                  {!selectedSkill.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ DELETE</button>}
-                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', background: 'none', border: 'none', color: '#475569', marginTop: '10px', cursor: 'pointer', fontSize: '12px' }}>CLOSE</button>
-                </>
+                  <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ ТРЕНУВАТИ</button>
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ НОВА ГІЛКА</button>
+                  {!selectedSkill.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ ВИДАЛИТИ</button>}
+                  
+                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: '10px', cursor: 'pointer', fontSize: '13px' }}>ЗАКРИТИ</button>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '15px', textAlign: 'center' }}>NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{treeData[selectedSkill]?.name}</span></h3>
-                  <input autoFocus value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="Skill name..." style={inputStyle} />
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                    <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 'bold' }}>BACK</button>
-                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '12px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '13px' }}>CREATE</button>
+                <div style={{ width: '100%' }}>
+                  <h3 style={{ color: '#fff', fontSize: '15px', marginBottom: '15px', textAlign: 'center' }}>
+                    СТВОРИТИ ПІД: <br/>
+                    <span style={{ color: '#3b82f6' }}>{treeData[selectedSkill]?.name}</span>
+                  </h3>
+                  
+                  <input 
+                    autoFocus 
+                    value={newSkillName} 
+                    onChange={(e) => setNewSkillName(e.target.value)} 
+                    placeholder="Назва навички..." 
+                    style={inputStyle} 
+                  />
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => setPopupMode('menu')} 
+                            style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px' }}>
+                      НАЗАД
+                    </button>
+                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} 
+                            style={{ flex: 1.5, padding: '12px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '13px' }}>
+                      {isSubmitting ? '...' : 'СТВОРИТИ'}
+                    </button>
                   </div>
                 </div>
               )}
