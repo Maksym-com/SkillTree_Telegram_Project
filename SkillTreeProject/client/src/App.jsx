@@ -16,6 +16,11 @@ function App() {
   const [firstName, setFirstName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  // Зберігаємо ручні зсуви: { [skillId]: { x: 0, y: 0 } }
+  const [offsets, setOffsets] = useState({});
+  // Стан для відстеження, який вузол зараз можна рухати
+  const [draggableId, setDraggableId] = useState(null);
+  const longPressTimer = useRef(null);
 
   const inputRef = useRef(null);
   const tg = window.Telegram?.WebApp;
@@ -133,6 +138,31 @@ function App() {
     } catch (err) { console.error("Rename error"); }
   };
 
+  const handlePointerDown = (id) => {
+    // Починаємо відлік 2 секунд
+    longPressTimer.current = setTimeout(() => {
+      setDraggableId(id);
+      // Можна додати вібрацію на телефоні, щоб юзер відчув "активацію"
+      if (window.navigator.vibrate) window.navigator.vibrate(50);
+    }, 2000);
+  };
+
+  const handlePointerUp = () => {
+    clearTimeout(longPressTimer.current);
+  };
+
+  const handleDragEnd = (id, info) => {
+    // Оновлюємо офсет після завершення перетягування
+    setOffsets(prev => ({
+      ...prev,
+      [id]: {
+        x: (prev[id]?.x || 0) + info.offset.x,
+        y: (prev[id]?.y || 0) + info.offset.y
+      }
+    }));
+    setDraggableId(null); // Вимикаємо режим перетягування
+  };
+
   // --- DYNAMIC TREE LAYOUT ---
 
   const treeData = useMemo(() => {
@@ -148,7 +178,17 @@ function App() {
         .filter(([_, s]) => s.parent === id)
         .map(([cid]) => cid);
 
-      result[id] = { ...skills[id], pos: { x, y }, depth };
+      // --- ВАЖЛИВА ПРАВКА ТУТ ---
+      // Отримуємо ручний зсув для цього конкретного ID (якщо він є)
+      const offset = offsets[id] || { x: 0, y: 0 };
+
+      result[id] = { 
+        ...skills[id], 
+        // Додаємо офсет до базових координат
+        pos: { x: x + offset.x, y: y + offset.y }, 
+        depth 
+      };
+      // --------------------------
 
       if (!children.length) return;
       const spread = baseSpread / (depth + 0.8);
@@ -167,7 +207,7 @@ function App() {
     const rootId = Object.keys(skills).find(id => id.startsWith("root_"));
     if (rootId) build(rootId, centerX, startY);
     return result;
-  }, [skills]);
+  }, [skills, offsets]); // offsets обов'язково в залежностях
 
 
   // --- STYLES (Оновлені для запобігання зсувам) ---
@@ -256,18 +296,53 @@ function App() {
               {/* Trunk Base - з плавним зникненням */}
               <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
 
-              {Object.entries(treeData).map(([id, data]) => {
-                if (!data.parent || !treeData[data.parent]) return null;
-                const parent = treeData[data.parent];
-                const thickness = Math.max(2, 10 - data.depth * 2);
-                return (
-                  <path key={`branch-${id}`}
-                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
-                    stroke={data.level > 0 ? "#3b82f6" : "#1e293b"}
-                    strokeWidth={thickness} fill="none" strokeLinecap="round" style={{ opacity: 0.5, transition: 'all 0.5s' }}
-                  />
-                );
-              })}
+              {Object.entries(treeData).map(([id, data]) => (
+                <div key={id} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggableId === id ? 100 : 5 }}>
+                  <motion.div 
+                    // Активація перетягування
+                    drag={draggableId === id}
+                    dragMomentum={false}
+                    onDragEnd={(e, info) => handleDragEnd(id, info)}
+                    
+                    // Обробка довгого натискання
+                    onPointerDown={() => handlePointerDown(id)}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                    
+                    onClick={() => { 
+                      // Відкриваємо попап тільки якщо не було перетягування
+                      if (!draggableId) {
+                        setSelectedSkill(id); 
+                        setPopupMode('menu'); 
+                        setShowPopup(true); 
+                      }
+                    }} 
+                    
+                    whileHover={{ scale: 1.1 }}
+                    animate={{ 
+                      scale: draggableId === id ? 1.3 : 1,
+                      boxShadow: draggableId === id ? "0 0 25px #3b82f6" : "none" 
+                    }}
+                  >
+                    <div style={{
+                      width: data.depth === 0 ? '36px' : '24px',
+                      height: data.depth === 0 ? '36px' : '24px',
+                      background: draggableId === id ? '#f59e0b' : (data.level >= 100 ? '#60a5fa' : data.level > 0 ? '#2563eb' : '#1e293b'),
+                      transform: 'rotate(45deg)',
+                      border: draggableId === id ? '2px solid #fff' : '1px solid rgba(255,255,255,0.2)',
+                      boxShadow: data.level > 0 ? `0 0 15px rgba(59, 130, 246, 0.5)` : 'none',
+                      cursor: draggableId === id ? 'grabbing' : 'pointer',
+                      transition: 'background 0.3s'
+                    }} />
+                    
+                    {/* Підпис навички */}
+                    <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '12px', color: '#fff', fontSize: '10px', whiteSpace: 'nowrap', textAlign: 'center', pointerEvents: 'none' }}>
+                      <div style={{ fontWeight: 'bold' }}>{data.name}</div>
+                      <div style={{ color: '#3b82f6', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
+                    </div>
+                  </motion.div>
+                </div>
+              ))}
             </svg>
 
             {Object.entries(treeData).map(([id, data]) => (
