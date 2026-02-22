@@ -176,7 +176,15 @@ function App() {
     WebkitAppearance: 'none'
   };
 
-  if (!treeData) return <div style={{ background: '#020617', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>GROWING NEURAL FOREST...</div>;
+    if (!skills || !userId) {
+    return (
+      <div style={{ background: '#020617', width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+        <motion.h2 animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 1.5 }} style={{ letterSpacing: '2px', fontSize: '12px' }}>
+          INITIALIZING PERSONAL NEURAL NETWORK...
+        </motion.h2>
+      </div>
+    );
+  }
 
   return (
     <div style={{ 
@@ -264,79 +272,50 @@ function App() {
 
       <AnimatePresence>
         {showPopup && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ 
-              position: 'fixed', 
-              inset: 0, 
-              background: 'rgba(2,6,23,0.9)', 
-              backdropFilter: 'blur(8px)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              zIndex: 1000, 
-              padding: '20px' 
-            }}
-            onClick={() => { setShowPopup(false); setIsEditingName(false); }}
-          >
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              style={{ 
-                background: '#1e293b', 
-                padding: '25px', 
-                borderRadius: '24px', 
-                border: '1px solid #334155', 
-                width: '100%', 
-                maxWidth: '290px', // Трохи зменшив, щоб було більше місця по боках на малих екранах
-                boxSizing: 'border-box',
-                position: 'relative',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => { setShowPopup(false); setIsEditingName(false); }}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} style={{ background: '#1e293b', padding: '24px', borderRadius: '24px', border: '1px solid rgba(59, 130, 246, 0.3)', width: '100%', maxWidth: '300px' }} onClick={(e) => e.stopPropagation()}>
               {popupMode === 'menu' ? (
-                <div style={{ width: '100%' }}>
-                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    {isEditingName ? (
-                      <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={inputStyle} />
-                    ) : (
-                      <h2 onClick={() => { setIsEditingName(true); setEditedName(treeData[selectedSkill]?.name); }} 
-                          style={{ color: '#fff', fontSize: '20px', cursor: 'pointer', margin: 0, wordBreak: 'break-word' }}>
-                        {treeData[selectedSkill]?.name} <span style={{fontSize: '14px', opacity: 0.5}}>✎</span>
-                      </h2>
-                    )}
-                    <div style={{ color: '#3b82f6', fontSize: '13px', marginTop: '8px', fontWeight: 'bold' }}>
-                      Рівень: {Math.floor(treeData[selectedSkill]?.level)}%
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', minHeight: '32px', position: 'relative' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      {isEditingName ? (
+                        <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={{ background: '#0f172a', color: '#fff', border: '1px solid #3b82f6', borderRadius: '6px', padding: '2px 10px', textAlign: 'center', fontSize: '18px', fontWeight: 'bold', outline: 'none', width: `${Math.max(editedName.length, 5)}ch`, minWidth: '100px', maxWidth: '240px' }} />
+                      ) : (
+                        <>
+                          <h2 style={{ color: '#fff', fontSize: '18px', margin: 0, textAlign: 'center', fontWeight: 'bold' }}>{skills[selectedSkill]?.name}</h2>
+                          <button onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }} style={{ position: 'absolute', left: '100%', marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignItems: 'center', padding: '4px' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                  
-                  <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡ ТРЕНУВАТИ</button>
-                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ НОВА ГІЛКА</button>
-                  {!selectedSkill.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑️ ВИДАЛИТИ</button>}
-                  
-                  <button onClick={() => setShowPopup(false)} style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: '10px', cursor: 'pointer', fontSize: '13px' }}>ЗАКРИТИ</button>
-                </div>
+                  <p style={{ color: '#64748b', fontSize: '12px', textAlign: 'center', marginBottom: '20px' }}>Level: {Math.floor(skills[selectedSkill]?.level)}%</p>
+                  {skills[selectedSkill]?.level < 100 ? (
+                    <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡️ TRAIN SKILL</button>
+                  ) : (
+                    <div style={{ width: '100%', height: '42px', marginBottom: '10px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981', background: 'rgba(16, 185, 129, 0.05)', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                      <span>MASTERED</span>
+                    </div>
+                  )}
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD CHILD BRANCH</button>
+                  {!selectedSkill.startsWith('root_') && (
+                    
+                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 DELETE BRANCH</button>
+                  )}
+                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: '#94a3b8', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer' }}>CANCEL</button>
+                </>
               ) : (
-                <div style={{ width: '100%' }}>
-                  <h3 style={{ color: '#fff', fontSize: '15px', marginBottom: '15px', textAlign: 'center' }}>
-                    СТВОРИТИ ПІД: <br/>
-                    <span style={{ color: '#3b82f6' }}>{treeData[selectedSkill]?.name}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <h3 style={{ color: '#fff', fontSize: '14px', marginBottom: '16px', textAlign: 'center', fontWeight: '600', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
                   </h3>
-                  
-                  <input 
-                    autoFocus 
-                    value={newSkillName} 
-                    onChange={(e) => setNewSkillName(e.target.value)} 
-                    placeholder="Назва навички..." 
-                    style={inputStyle} 
-                  />
-                  
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => setPopupMode('menu')} 
-                            style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px' }}>
-                      НАЗАД
-                    </button>
-                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} 
-                            style={{ flex: 1.5, padding: '12px', borderRadius: '12px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '13px' }}>
-                      {isSubmitting ? '...' : 'СТВОРИТИ'}
+                  <input ref={inputRef} autoFocus value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()} placeholder="Enter skill name..." style={{ width: '100%', maxWidth: '240px', padding: '10px 14px', borderRadius: '10px', background: '#0f172a', color: '#fff', border: '1px solid #334155', marginBottom: '20px', outline: 'none' }} />
+                  <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '240px' }}>
+                    <button onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: '#334155', color: '#fff', border: 'none', fontSize: '13px', fontWeight: '600' }}>BACK</button>
+                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '10px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 'bold', opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1 }}>
+                      {isSubmitting ? '...' : 'CREATE'}
                     </button>
                   </div>
                 </div>
@@ -350,3 +329,4 @@ function App() {
 }
 
 export default App;
+
