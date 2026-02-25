@@ -169,3 +169,25 @@ async def rename_skill(skill_id: str, new_name: dict, db: Session = Depends(get_
     skill.name = new_name.get("name")
     db.commit()
     return {"status": "success", "new_name": skill.name}
+
+
+@app.delete("/user/{user_id}/reset")
+def reset_user_tree(user_id: int, db: Session = Depends(get_db)):
+    # Знаходимо всі скіли користувача, які НЕ є кореневими
+    # Ми не чіпаємо root_, бо він створюється при ініціалізації
+    db.query(Skill).filter(
+        Skill.user_id == user_id, 
+        ~Skill.id.like("root_%")
+    ).delete(synchronize_session=False)
+    
+    # Також можна скинути рівень кореневого вузла до 100, якщо він раптом змінився
+    root_skill = db.query(Skill).filter(
+        Skill.user_id == user_id, 
+        Skill.id.like("root_%")
+    ).first()
+    
+    if root_skill:
+        root_skill.level = 100.0
+    
+    db.commit()
+    return {"status": "tree_reset", "user_id": user_id}

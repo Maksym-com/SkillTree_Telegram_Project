@@ -16,6 +16,9 @@ function App() {
   const [firstName, setFirstName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [theme, setTheme] = useState('dark');
+
   
   // DRAG STATE
   const [draggingId, setDraggingId] = useState(null);
@@ -92,6 +95,22 @@ function App() {
         await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
         setShowPopup(false); fetchSkills(userId);
       } catch (err) { console.error("Delete error"); }
+    }
+  };
+
+  const handleResetTree = async () => {
+    if (window.confirm("Ви впевнені? Це видалить усі навички, крім головної!")) {
+      try {
+        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
+          method: 'DELETE',
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        if (res.ok) {
+          setOffsets({}); // Очищаємо локальні зсуви
+          fetchSkills(userId); // Перезавантажуємо дерево
+          setShowProfilePopup(false);
+        }
+      } catch (err) { console.error("Reset error:", err); }
     }
   };
 
@@ -184,12 +203,28 @@ function App() {
       fontFamily: 'sans-serif'
     }}>
 
-      <header style={{ position: 'absolute', top: '20px', width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', backdropFilter: 'blur(10px)' }}>
-          {userAvatar && <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} />}
-          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{firstName.toUpperCase()}</span>
-        </div>
-      </header>
+    <header style={{ 
+      position: 'absolute', top: '20px', left: 0, width: '100%', 
+      display: 'flex', justifyContent: 'center', zIndex: 10 
+    }}>
+      <div 
+        onClick={() => setShowProfilePopup(true)} // Відкриваємо профіль
+        style={{ 
+          display: 'flex', alignItems: 'center', gap: '10px', 
+          background: 'rgba(15, 23, 42, 0.6)', padding: '8px 16px', 
+          borderRadius: '25px', border: '1px solid rgba(59, 130, 246, 0.3)', 
+          backdropFilter: 'blur(10px)', cursor: 'pointer', pointerEvents: 'auto' 
+        }}
+      >
+        {userAvatar ? 
+          <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} /> : 
+          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6' }} />
+        }
+        <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+          {firstName.toUpperCase() || 'USER'}
+        </span>
+      </div>
+    </header>
 
       <TransformWrapper
         initialScale={0.6} 
@@ -226,6 +261,11 @@ function App() {
                 drag
                 dragElastic={0}
                 dragMomentum={false}
+                onTap={() => {
+                  setSelectedSkill(id);
+                  setPopupMode('menu');
+                  setShowPopup(true);
+                }}
                 style={{
                   x: offsets[id]?.x || 0,
                   y: offsets[id]?.y || 0
@@ -336,6 +376,67 @@ function App() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+        {/* Profile Popup */}
+        {showProfilePopup && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ 
+              position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', 
+              backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', zIndex: 11000, padding: '20px' 
+            }} 
+            onClick={() => setShowProfilePopup(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }}
+              style={{ 
+                background: '#1e293b', padding: '30px', borderRadius: '32px', 
+                border: '1px solid rgba(59, 130, 246, 0.4)', width: '100%', maxWidth: '320px',
+                textAlign: 'center'
+              }} 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ marginBottom: '20px' }}>
+                {userAvatar ? 
+                  <img src={userAvatar} style={{ width: '80px', height: '80px', borderRadius: '50%', border: '3px solid #3b82f6' }} /> : 
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#3b82f6', margin: '0 auto' }} />
+                }
+                <h2 style={{ color: '#fff', marginTop: '15px', fontSize: '20px' }}>{firstName}</h2>
+                <p style={{ color: '#64748b', fontSize: '12px' }}>ID: {userId}</p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Кнопка Мови */}
+                <button style={menuButtonStyle("#94a3b8")} onClick={() => alert("Language settings coming soon...")}>
+                  🌐 LANGUAGE: EN (Beta)
+                </button>
+
+                {/* Кнопка Теми */}
+                <button 
+                  style={menuButtonStyle(theme === 'dark' ? "#fbbf24" : "#3b82f6")} 
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                  {theme === 'dark' ? '☀️ LIGHT MODE' : '🌙 DARK MODE'}
+                </button>
+
+                {/* Кнопка Очищення */}
+                <button 
+                  style={menuButtonStyle("#ef4444")} 
+                  onClick={handleResetTree}
+                >
+                  ⚠️ RESET TREE
+                </button>
+
+                <button 
+                  onClick={() => setShowProfilePopup(false)} 
+                  style={{ marginTop: '10px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  CLOSE
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
