@@ -351,9 +351,9 @@ const menuButtonStyle = (color) => ({
                   background: draggingId === id 
                     ? '#f59e0b' 
                     : (data.level >= 100 
-                      ? '#60a5fa' 
+                      ? '#5ad3c5' 
                       : data.level > 0 
-                        ? '#2563eb' 
+                        ? '#45da8f' 
                         /* Колір неактивного ромба залежить від теми */
                         : (theme === 'dark' ? '#1e293b' : '#cbd5e1')),
                   transform: 'rotate(45deg)',
