@@ -223,24 +223,28 @@ function App() {
             {Object.entries(treeData).map(([id, data]) => (
               <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
                 <motion.div
-                  drag
-                  dragElastic={0}
-                  dragMomentum={false}
-                  onDragStart={() => setDraggingId(id)}
-                  onDrag={(e, info) => {
-                    setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
-                        x: info.offset.x,
-                        y: info.offset.y
-                      }
-                    }));
-                  }}
-                  onDragEnd={() => {
-                    setDraggingId(null);
-                  }}
-                  whileDrag={{ scale: 1.2 }}
-                  animate={{ scale: draggingId === id ? 1.2 : 1 }}
+                drag
+                dragElastic={0}
+                dragMomentum={false}
+                style={{
+                  x: offsets[id]?.x || 0,
+                  y: offsets[id]?.y || 0
+                }}
+                onDragStart={() => setDraggingId(id)}
+                onDrag={(e, info) => {
+                  setOffsets(prev => ({
+                    ...prev,
+                    [id]: {
+                      x: info.offset.x,
+                      y: info.offset.y
+                    }
+                  }));
+                }}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                }}
+                whileDrag={{ scale: 1.2 }}
+                animate={{ scale: draggingId === id ? 1.2 : 1 }}
                 >
                 <div style={{
                   width: data.depth === 0 ? '36px' : '24px',
