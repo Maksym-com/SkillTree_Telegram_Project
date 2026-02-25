@@ -15,7 +15,7 @@ const themes = {
     nodeInactive: '#1e293b'
   },
   light: {
-    bg: '#f8fafc',
+    bg: '#fff9ed',
     card: '#ffffff',
     text: '#0f172a',
     textMuted: '#64748b',
