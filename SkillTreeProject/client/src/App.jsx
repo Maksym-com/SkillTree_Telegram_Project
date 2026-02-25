@@ -148,60 +148,66 @@ function App() {
   };
 
   // --- TREE LAYOUT ---
-  const treeData = useMemo(() => {
-    if (!skills) return {};
-    const result = {};
-    const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
+  const treeData = useMemo(() => {
+    // 1. Перевіряємо, чи є взагалі дані про навички
+    if (!skills || Object.keys(skills).length === 0) return {}; 
 
-    const build = (id, x, y, angle = -90, depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
-      const children = Object.entries(skills)
-        .filter(([_, s]) => s.parent === id)
-        .map(([cid]) => cid);
+    const result = {};
+    const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
 
-      const ownOffset = offsets[id] || { x: 0, y: 0 };
+    const build = (id, x, y, angle = -90, depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
+      if (!skills[id]) return; // Захист від відсутнього вузла
 
-      const totalOffset = {
-        x: inheritedOffset.x + ownOffset.x,
-        y: inheritedOffset.y + ownOffset.y
-      };
+      const children = Object.entries(skills)
+        .filter(([_, s]) => s.parent === id)
+        .map(([cid]) => cid);
 
-      const finalX = x + totalOffset.x;
-      const finalY = y + totalOffset.y;
+      const ownOffset = offsets[id] || { x: 0, y: 0 };
+      const totalOffset = {
+        x: inheritedOffset.x + ownOffset.x,
+        y: inheritedOffset.y + ownOffset.y
+      };
 
-      result[id] = {
-        ...skills[id],
-        pos: { x: finalX, y: finalY },
-        depth
-      };
+      const finalX = x + totalOffset.x;
+      const finalY = y + totalOffset.y;
 
-      if (!children.length) return;
+      result[id] = {
+        ...skills[id],
+        pos: { x: finalX, y: finalY },
+        depth
+      };
 
-      const spread = baseSpread / (depth + 0.8);
-      const startAngle = angle - spread / 2;
+      if (children.length === 0) return;
 
-      children.forEach((childId, index) => {
-        const childAngle =
-          startAngle + (spread / (children.length - 1 || 1)) * index;
+      const spread = baseSpread / (depth + 0.8);
+      const startAngle = angle - spread / 2;
 
-        const rad = (childAngle * Math.PI) / 180;
-        const length = verticalSpacing - depth * 15;
+      children.forEach((childId, index) => {
+        const childAngle =
+          startAngle + (spread / (children.length - 1 || 1)) * index;
 
-        build(
-          childId,
-          x + Math.cos(rad) * length,
-          y + Math.sin(rad) * length,
-          childAngle,
-          depth + 1,
-          totalOffset // 🔥 передаємо накопичений offset
-        );
-      });
-    };
+        const rad = (childAngle * Math.PI) / 180;
+        const length = verticalSpacing - depth * 15;
 
+        build(
+          childId,
+          x + Math.cos(rad) * length,
+          y + Math.sin(rad) * length,
+          childAngle,
+          depth + 1,
+          totalOffset
+        );
+      });
+    };
 
-    const rootId = Object.keys(skills).find(id => id.startsWith("root_"));
-    if (rootId) build(rootId, centerX, startY);
-    return result;
-  }, [skills, offsets]);
+    // Шукаємо корінь (root)
+    const rootId = Object.keys(skills).find(id => id.startsWith("root_"));
+    if (rootId) {
+      build(rootId, centerX, startY);
+    }
+    
+    return result;
+  }, [skills, offsets]);
 
 const menuButtonStyle = (color) => ({
     display: 'block', 
@@ -222,6 +228,8 @@ const menuButtonStyle = (color) => ({
 
 
   return (
+    console.log("Поточні навички:", skills),
+
     <div style={{ 
       background: colors.bg,
       transition: 'background 0.3s ease',
