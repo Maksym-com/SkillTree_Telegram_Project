@@ -193,33 +193,24 @@ function App() {
 
             {Object.entries(treeData).map(([id, data]) => (
               <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
-              <motion.div 
-                drag
-                dragElastic={0.15}
-                dragMomentum={false}
-                dragConstraints={{ left: -500, right: 500, top: -500, bottom: 500 }}
-                dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
-                onDragStart={() => setDraggingId(id)}
-                onDrag={(e, info) => {
-                  setOffsets(prev => ({
-                    ...prev,
-                    [id]: {
-                      x: (prev[id]?.x || 0) + info.delta.x,
-                      y: (prev[id]?.y || 0) + info.delta.y
-                    }
-                  }));
-                }}
-                onDragEnd={() => setDraggingId(null)}
-                whileDrag={{ scale: 1.2 }}
-                animate={{ scale: draggingId === id ? 1.2 : 1 }}
-                onClick={() => {
-                  if (!draggingId) {
-                    setSelectedSkill(id);
-                    setPopupMode('menu');
-                    setShowPopup(true);
-                  }
-                }}
-              >
+                <motion.div
+                  drag
+                  dragElastic={0}
+                  dragMomentum={false}
+                  onDragStart={() => setDraggingId(id)}
+                  onDragEnd={(e, info) => {
+                    setOffsets(prev => ({
+                      ...prev,
+                      [id]: {
+                        x: (prev[id]?.x || 0) + info.offset.x,
+                        y: (prev[id]?.y || 0) + info.offset.y
+                      }
+                    }));
+                    setDraggingId(null);
+                  }}
+                  whileDrag={{ scale: 1.2 }}
+                  animate={{ scale: draggingId === id ? 1.2 : 1 }}
+                >
                 <div style={{
                   width: data.depth === 0 ? '36px' : '24px',
                   height: data.depth === 0 ? '36px' : '24px',
