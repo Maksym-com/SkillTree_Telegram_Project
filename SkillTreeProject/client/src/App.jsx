@@ -378,7 +378,7 @@ const menuButtonStyle = (color) => ({
                   pointerEvents: 'none'
                 }}>
                   <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                  <div style={{ color: '#3b82f6' }}>{Math.floor(data.level)}%</div>
+                  <div style={{ color: '#2cc3a0' }}>{Math.floor(data.level)}%</div>
                 </div>
               </motion.div>
               </div>
@@ -423,7 +423,7 @@ const menuButtonStyle = (color) => ({
                           style={{ 
                             background: theme === 'dark' ? '#0f172a' : '#f1f5f9', 
                             color: theme === 'dark' ? '#fff' : '#0f172a', 
-                            border: '1px solid #3b82f6', borderRadius: '6px', 
+                            border: '1px solid #23bcab', borderRadius: '6px', 
                             padding: '2px 10px', textAlign: 'center', fontSize: '18px', 
                             fontWeight: 'bold', outline: 'none', width: `${Math.max(editedName.length, 5)}ch`, 
                             minWidth: '100px', maxWidth: '240px' 
