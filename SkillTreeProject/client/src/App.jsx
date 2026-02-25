@@ -113,21 +113,50 @@ function App() {
     const result = {};
     const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
 
-    const build = (id, x, y, angle = -90, depth = 0) => {
-      const children = Object.entries(skills).filter(([_, s]) => s.parent === id).map(([cid]) => cid);
-      const offset = offsets[id] || { x: 0, y: 0 };
-      result[id] = { ...skills[id], pos: { x: x + offset.x, y: y + offset.y }, depth };
-      
+    const build = (id, x, y, angle = -90, depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
+      const children = Object.entries(skills)
+        .filter(([_, s]) => s.parent === id)
+        .map(([cid]) => cid);
+
+      const ownOffset = offsets[id] || { x: 0, y: 0 };
+
+      const totalOffset = {
+        x: inheritedOffset.x + ownOffset.x,
+        y: inheritedOffset.y + ownOffset.y
+      };
+
+      const finalX = x + totalOffset.x;
+      const finalY = y + totalOffset.y;
+
+      result[id] = {
+        ...skills[id],
+        pos: { x: finalX, y: finalY },
+        depth
+      };
+
       if (!children.length) return;
+
       const spread = baseSpread / (depth + 0.8);
       const startAngle = angle - spread / 2;
+
       children.forEach((childId, index) => {
-        const childAngle = startAngle + (spread / (children.length - 1 || 1)) * index;
+        const childAngle =
+          startAngle + (spread / (children.length - 1 || 1)) * index;
+
         const rad = (childAngle * Math.PI) / 180;
-        const length = verticalSpacing - (depth * 15);
-        build(childId, x + Math.cos(rad) * length, y + Math.sin(rad) * length, childAngle, depth + 1);
+        const length = verticalSpacing - depth * 15;
+
+        build(
+          childId,
+          x + Math.cos(rad) * length,
+          y + Math.sin(rad) * length,
+          childAngle,
+          depth + 1,
+          totalOffset // 🔥 передаємо накопичений offset
+        );
       });
     };
+
 
     const rootId = Object.keys(skills).find(id => id.startsWith("root_"));
     if (rootId) build(rootId, centerX, startY);
