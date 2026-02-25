@@ -149,7 +149,7 @@ function App() {
 
   // --- TREE LAYOUT ---
   const treeData = useMemo(() => {
-    if (!skills) return null;
+    if (!skills) return {};
     const result = {};
     const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
 
@@ -220,7 +220,7 @@ const menuButtonStyle = (color) => ({
     transition: 'all 0.2s ease'
   });
 
-  
+
   return (
     <div style={{ 
       background: colors.bg,
@@ -290,23 +290,23 @@ const menuButtonStyle = (color) => ({
                 </linearGradient>
               </defs>
               <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
-              {Object.entries(treeData).map(([id, data]) => {
-                const parent = treeData[data.parent];
-                if (!parent) return null;
-                return (
-                  <path key={`line-${id}`}
-                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
-                    /* Динамічний колір ліній: синій для активних, сірий для неактивних */
-                    stroke={data.level > 0 ? "#3b82f6" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
-                    strokeWidth={Math.max(2, 10 - data.depth * 2)} 
-                    fill="none" 
-                    style={{ opacity: 0.5, transition: 'all 0.1s' }}
-                  />
-                );
-              })}
+            {treeData && Object.entries(treeData).map(([id, data]) => {
+            const parent = treeData[data.parent];
+            if (!parent) return null;
+            return (
+                <path key={`line-${id}`}
+                d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
+                /* Динамічний колір ліній: синій для активних, сірий для неактивних */
+                stroke={data.level > 0 ? "#3b82f6" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
+                strokeWidth={Math.max(2, 10 - data.depth * 2)} 
+                fill="none" 
+                style={{ opacity: 0.5, transition: 'all 0.1s' }}
+                />
+            );
+            })}
             </svg>
 
-            {Object.entries(treeData).map(([id, data]) => (
+            {treeData && Object.entries(treeData).map(([id, data]) => (
               <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
                 <motion.div
                 drag
