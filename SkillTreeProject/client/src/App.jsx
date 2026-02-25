@@ -305,7 +305,7 @@ const menuButtonStyle = (color) => ({
                 <path key={`line-${id}`}
                 d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
                 /* Динамічний колір ліній: синій для активних, сірий для неактивних */
-                stroke={data.level > 0 ? "#3b82f6" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
+                stroke={data.level > 0 ? "#119484" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
                 strokeWidth={Math.max(2, 10 - data.depth * 2)} 
                 fill="none" 
                 style={{ opacity: 0.5, transition: 'all 0.1s' }}
@@ -359,7 +359,7 @@ const menuButtonStyle = (color) => ({
                   transform: 'rotate(45deg)',
                   border: theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
                   boxShadow: data.level > 0 
-                    ? `0 0 15px rgba(59, 130, 246, 0.5)` 
+                    ? `0 0 15px rgba(16, 211, 169, 0.5)` 
                     : 'none',
                   cursor: 'grab'
                 }} />
