@@ -198,14 +198,16 @@ function App() {
                   dragElastic={0}
                   dragMomentum={false}
                   onDragStart={() => setDraggingId(id)}
-                  onDragEnd={(e, info) => {
+                  onDrag={(e, info) => {
                     setOffsets(prev => ({
                       ...prev,
                       [id]: {
-                        x: (prev[id]?.x || 0) + info.offset.x,
-                        y: (prev[id]?.y || 0) + info.offset.y
+                        x: info.offset.x,
+                        y: info.offset.y
                       }
                     }));
+                  }}
+                  onDragEnd={() => {
                     setDraggingId(null);
                   }}
                   whileDrag={{ scale: 1.2 }}
