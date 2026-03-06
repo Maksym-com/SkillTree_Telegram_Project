@@ -414,7 +414,7 @@ function App() {
             cursor: 'pointer', boxShadow: '0 0 15px rgba(255, 0, 0, 0.4)'
           }}
         >
-          🔻 DESCEND INTO THE ABYSS
+          DESCEND INTO THE ABYSS
         </button>
       )}
 
@@ -429,7 +429,7 @@ function App() {
             cursor: 'pointer', backdropFilter: 'blur(5px)'
           }}
         >
-          ☀️ RISE TO THE GREAT
+          RISE TO THE GREAT
         </button>
       )}
     </div>

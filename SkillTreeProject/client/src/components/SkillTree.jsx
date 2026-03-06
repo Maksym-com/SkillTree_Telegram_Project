@@ -22,49 +22,61 @@ const SkillTree = ({
 
         const result = {};
         const centerX = 1000;
-        const startY = world === 'light' ? 1750 : 250;
-        const verticalSpacing = world === 'light' ? -200 : 200;
-        const baseSpread = 90;
+        
+        // Налаштування світів
+        const isLight = world === 'light';
+        const startY = isLight ? 1750 : 250; 
+        const verticalDirection = isLight ? -1 : 1; // -1 вгору, 1 вниз
+        
+        const baseLength = 220; // Базова довжина гілки
+        const baseSpread = 90;  // Загальний кут розхилу (в градусах)
 
-        const build = (id, x, y, angle = (world === 'light' ? -90 : 90), depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
-        if (!skills[id]) return;
+        const build = (id, x, y, parentAngle, depth = 0) => {
+            const skill = skills[id];
+            if (!skill) return;
 
-        const children = Object.entries(skills)
-            .filter(([_, s]) => s.parent_id === id) // Використовуємо parent_id з БД
-            .map(([cid]) => cid);
+            // Отримуємо всіх дітей цього вузла
+            const children = Object.values(skills).filter(s => s.parent_id === id);
 
-        const ownOffset = offsets[id] || { x: 0, y: 0 };
-        const totalOffset = {
-            x: inheritedOffset.x + ownOffset.x,
-            y: inheritedOffset.y + ownOffset.y
+            // Зберігаємо поточний вузол
+            result[id] = {
+            ...skill,
+            pos: { x, y },
+            depth
+            };
+
+            if (children.length === 0) return;
+
+            // Розрахунок кутів для дітей
+            // Чим глибше, тим менший кут розхилу, щоб гілки не перетиналися
+            const currentSpread = baseSpread / (depth + 1);
+            const startAngle = parentAngle - currentSpread / 2;
+            const angleStep = children.length > 1 ? currentSpread / (children.length - 1) : 0;
+
+            children.forEach((child, index) => {
+            // Якщо дитина одна — вона йде прямо за вектором батька
+            const currentAngle = children.length === 1 
+                ? parentAngle 
+                : startAngle + (angleStep * index);
+
+            const rad = (currentAngle * Math.PI) / 180;
+            const length = baseLength * Math.pow(0.85, depth); // Гілки коротшають з глибиною
+
+            const nextX = x + Math.cos(rad) * length;
+            const nextY = y + Math.sin(rad) * length;
+
+            build(child.id, nextX, nextY, currentAngle, depth + 1);
+            });
         };
 
-        const finalX = x + totalOffset.x;
-        const finalY = y + totalOffset.y;
-
-        result[id] = {
-            ...skills[id],
-            pos: { x: finalX, y: finalY },
-            depth,
-            parent: skills[id].parent_id
-        };
-
-        if (children.length === 0) return;
-
-        const spread = baseSpread / (depth + 0.8);
-        const startAngle = angle - spread / 2;
-
-        children.forEach((childId, index) => {
-            const childAngle = startAngle + (spread / (children.length - 1 || 1)) * index;
-            const rad = (childAngle * Math.PI) / 180;
-            const length = Math.abs(verticalSpacing) - depth * 15;
-
-            build(childId, x + Math.cos(rad) * length, y + Math.sin(rad) * length, childAngle, depth + 1, totalOffset);
-        });
-        };
-
-        const rootId = Object.keys(skills).find(id => id.startsWith("root_") || !skills[id].parent_id);
-        if (rootId) build(rootId, centerX, startY);
+        // Пошук кореня (Core)
+        const rootSkill = Object.values(skills).find(s => !s.parent_id || s.parent_id.includes('root'));
+        
+        if (rootSkill) {
+            // Початковий кут: -90° (вгору) для Light, 90° (вниз) для Abyss
+            const initialAngle = isLight ? -90 : 90;
+            build(rootSkill.id, centerX, startY, initialAngle, 0);
+        }
 
             return result;
         }, [skills, offsets, world]);
