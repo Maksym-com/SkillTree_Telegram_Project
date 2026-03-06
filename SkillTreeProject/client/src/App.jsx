@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
-const API_URL = 'https://skilltree-telegram-project.onrender.com';
+const API_URL = 'https://skilltree-telegram-project.onrender.com/';
 
 const themes = {
   dark: {
@@ -23,7 +23,7 @@ const themes = {
     input: '#f1f5f9',
     nodeInactive: '#cbd5e1'
   },
-  abyssTheme: {
+  abyss: {
     bg: '#050000',           // Глибокий чорний з відтінком крові
     card: '#1a0505',         // Темно-червоні картки
     text: '#ff4d4d',         // Криваво-червоний текст
