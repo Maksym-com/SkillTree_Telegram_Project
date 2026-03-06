@@ -76,13 +76,13 @@ const SkillTree = ({
 
   return (
     <TransformWrapper
-      initialScale={0.5}
+      initialScale={1}
       centerOnInit
       minScale={0.2}
       limitToBounds={false}
       panning={{ disabled: draggingId !== null }}
     >
-      <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
+      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
         <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
           {/* SVG BRANCHES */}
