@@ -166,6 +166,7 @@ function App() {
     const centerX = 1000;
     const startY = world === 'light' ? 1750 : 250; 
     const verticalSpacing = world === 'light' ? -200 : 200;
+    const baseSpread = 90;
 
     const build = (id, x, y, angle = (world === 'light' ? -90 : 90), depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
       if (!skills[id]) return; // Захист від відсутнього вузла
