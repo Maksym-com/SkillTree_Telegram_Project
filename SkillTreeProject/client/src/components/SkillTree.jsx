@@ -157,8 +157,9 @@ const SkillTree = ({
                 key={id}
                 style={{
                   position: 'absolute',
-                  left: x - size / 2,
-                  top: y - size / 2,
+                  left: 0,
+                  top: 0,
+                  transform: `translate(${x}px, ${y}px)`,
                   zIndex: draggingId === id ? 100 : 10,
                 }}
               >
@@ -185,6 +186,7 @@ const SkillTree = ({
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    transform: 'translate(-50%, -50%)', 
                     cursor: draggingId === id ? 'grabbing' : 'pointer'
                   }}
                 >
