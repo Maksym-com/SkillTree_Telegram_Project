@@ -165,9 +165,9 @@ function App() {
     const result = {};
     const centerX = 1000;
     const startY = world === 'light' ? 1750 : 250; 
-    const verticalSpacing = world === 'light' ? -200 : 200;       
+    const verticalSpacing = world === 'light' ? -200 : 200;
 
-    const build = (id, x, y, angle = -90, depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
+    const build = (id, x, y, angle = (world === 'light' ? -90 : 90), depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
       if (!skills[id]) return; // Захист від відсутнього вузла
 
       const children = Object.entries(skills)
@@ -199,7 +199,7 @@ function App() {
           startAngle + (spread / (children.length - 1 || 1)) * index;
 
         const rad = (childAngle * Math.PI) / 180;
-        const length = verticalSpacing - depth * 15;
+        const length = Math.abs(verticalSpacing) - depth * 15;
 
         build(
           childId,
@@ -219,7 +219,7 @@ function App() {
     }
     
     return result;
-  }, [skills, offsets]);
+  }, [skills, offsets, world]);
 
 const menuButtonStyle = (color) => ({
     display: 'block', 
@@ -322,7 +322,7 @@ const menuButtonStyle = (color) => ({
             if (!parent) return null;
             return (
                 <path key={`line-${id}`}
-                d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
+                d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - (world === 'light' ? 20 : -20)} ${data.pos.x} ${data.pos.y}`}
                 /* Динамічний колір ліній: синій для активних, сірий для неактивних */
                 stroke={data.level > 0 ? "#119484" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
                 strokeWidth={Math.max(2, 10 - data.depth * 2)} 
