@@ -24,10 +24,16 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  /* Прибираємо display: flex та place-items */
+  overflow: hidden; /* Щоб не було подвійних скролів, бо у нас є зум-панель */
+}
+
+#root {
+  width: 100%;
+  height: 100%;
 }
 
 h1 {
