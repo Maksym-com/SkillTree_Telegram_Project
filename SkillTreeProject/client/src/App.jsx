@@ -22,6 +22,15 @@ const themes = {
     border: 'rgba(59, 130, 246, 0.2)',
     input: '#f1f5f9',
     nodeInactive: '#cbd5e1'
+  },
+  abyssTheme: {
+    bg: '#050000',           // Глибокий чорний з відтінком крові
+    card: '#1a0505',         // Темно-червоні картки
+    text: '#ff4d4d',         // Криваво-червоний текст
+    textMuted: '#661a1a',    // Тьмяний червоний
+    border: 'rgba(255, 0, 0, 0.3)',
+    nodeInactive: '#1a0000', // Майже чорні неактивні вузли
+    accent: '#ff0000'        // Яскраво-червоний для ліній
   }
 };
 
@@ -39,7 +48,8 @@ function App() {
   const [editedName, setEditedName] = useState('');
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [theme, setTheme] = useState('dark');
-  const colors = themes[theme];
+  const colors = world === 'abyss' ? themes.abyss : themes[theme];
+  const [world, setWorld] = useState('light');
   
   // DRAG STATE
   const [draggingId, setDraggingId] = useState(null);
@@ -153,7 +163,9 @@ function App() {
     if (!skills || Object.keys(skills).length === 0) return {}; 
 
     const result = {};
-    const centerX = 1000, startY = 1750, verticalSpacing = 200, baseSpread = 80;
+    const centerX = 1000;
+    const startY = world === 'light' ? 1750 : 250; 
+    const verticalSpacing = world === 'light' ? -200 : 200;       
 
     const build = (id, x, y, angle = -90, depth = 0, inheritedOffset = { x: 0, y: 0 }) => {
       if (!skills[id]) return; // Захист від відсутнього вузла
@@ -297,7 +309,14 @@ const menuButtonStyle = (color) => ({
                 />
                 </linearGradient>
               </defs>
-              <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
+              <rect 
+                x="998" 
+                y={world === 'light' ? 1750 : 0} // Якщо безодня, стовбур йде зверху
+                width="4" 
+                height="300" 
+                fill="url(#trunkGradient)" 
+                style={{ transform: world === 'abyss' ? 'rotate(180deg)' : 'none', transformOrigin: 'center' }}
+              />
             {treeData && Object.entries(treeData).map(([id, data]) => {
             const parent = treeData[data.parent];
             if (!parent) return null;
@@ -545,6 +564,36 @@ const menuButtonStyle = (color) => ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Кнопка спуску (показуємо тільки в світлому світі) */}
+      {world === 'light' && (
+        <button 
+          onClick={() => setWorld('abyss')}
+          style={{
+            position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)',
+            background: '#000', color: '#ff4d4d', border: '1px solid #ff4d4d',
+            padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', zIndex: 100,
+            cursor: 'pointer', boxShadow: '0 0 15px rgba(255, 0, 0, 0.4)'
+          }}
+        >
+          🔻 DESCEND INTO THE ABYSS
+        </button>
+      )}
+
+      {/* Кнопка підйому (показуємо тільки в безодні) */}
+      {world === 'abyss' && (
+        <button 
+          onClick={() => setWorld('light')}
+          style={{
+            position: 'fixed', top: '80px', left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(255, 255, 255, 0.1)', color: '#3b82f6', border: '1px solid #3b82f6',
+            padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', zIndex: 100,
+            cursor: 'pointer', backdropFilter: 'blur(5px)'
+          }}
+        >
+          ☀️ RISE TO THE GREAT
+        </button>
+      )}
     </div>
   );
 }
