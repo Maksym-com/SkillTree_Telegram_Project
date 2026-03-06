@@ -111,38 +111,27 @@ const SkillTree = ({
             />
 
             {Object.entries(treeData).map(([id, data]) => {
-              const parent = treeData[data.parent];
-              if (!parent) return null;
+            const offset = offsets[id] || { x: 0, y: 0 };
+            const x = data.basePos.x + offset.x;
+            const y = data.basePos.y + offset.y;
 
-              const offset = offsets[id] || { x: 0, y: 0 };
-              const parentOffset = offsets[data.parent] || { x: 0, y: 0 };
-
-              const x1 = parent.basePos.x + parentOffset.x;
-              const y1 = parent.basePos.y + parentOffset.y;
-
-              const x2 = data.basePos.x + offset.x;
-              const y2 = data.basePos.y + offset.y;
-
-              const dx = x2 - x1;
-              const dy = y2 - y1;
-
-              const curveStrength = 0.25 + data.depth * 0.05;
-              const cx = x1 + dx / 2 - dy * curveStrength;
-              const cy = y1 + dy / 2 + dx * curveStrength;
-
-              return (
-                <motion.path
-                  key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
-                  stroke={data.level > 0 ? accentColor : inactiveColor}
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.6 }}
-                />
-              );
+            return (
+                <div
+                key={id}
+                style={{
+                    position: 'absolute',
+                    // Тільки ці два параметри визначають місцезнаходження
+                    left: `${x}px`, 
+                    top: `${y}px`,
+                    // Центрування ромба відносно точки (x,y)
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 10
+                }}
+                >
+                {/* Твій ромб і текст тут */}
+                <div style={{ width: '28px', height: '28px', transform: 'rotate(45deg)', background: 'blue' }} />
+                </div>
+            );
             })}
           </svg>
 
