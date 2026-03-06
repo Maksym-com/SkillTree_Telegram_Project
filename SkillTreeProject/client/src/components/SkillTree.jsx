@@ -104,42 +104,43 @@ const SkillTree = ({
             <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
             
             <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
-                {/* Градієнт для стовбура */}
-                <defs>
+            {/* Градієнт та Стовбур залишаються без змін */}
+            <defs>
                 <linearGradient id="trunkGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={accentColor} stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="transparent" />
+                <stop offset="0%" stopColor={accentColor} stopOpacity="0.4" />
+                <stop offset="100%" stopColor="transparent" />
                 </linearGradient>
-                </defs>
-                
-                {/* Стовбур */}
-                <rect 
+            </defs>
+            
+            <rect 
                 x="998" 
                 y={isAbyss ? 0 : 1750} 
                 width="4" 
                 height="250" 
                 fill="url(#trunkGrad)" 
-                style={{ transform: isAbyss ? 'rotate(180deg)' : 'none', transformOrigin: '1000px 125px' }}
-                />
+            />
 
-                {/* Малюємо лінії зв'язків */}
-                {Object.entries(treeData).map(([id, data]) => {
-                const parent = treeData[data.parent_id];
+            {/* ВИПРАВЛЕНИЙ БЛОК ЛІНІЙ */}
+            {Object.entries(treeData).map(([id, data]) => {
+                // Звертаємось до батька через data.parent (це те поле, що прийшло з сервера)
+                const parent = treeData[data.parent]; 
+                
                 if (!parent) return null;
                 
                 return (
-                    <motion.path
+                <motion.path
                     key={`line-${id}`}
-                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - (isLight ? 20 : -20)} ${data.pos.x} ${data.pos.y}`}
+                    // Малюємо криву від координат батька до координат поточної навички
+                    d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - (world === 'light' ? 20 : -20)} ${data.pos.x} ${data.pos.y}`}
                     stroke={data.level > 0 ? accentColor : inactiveColor}
                     strokeWidth="2"
                     fill="none"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     style={{ opacity: 0.5 }}
-                    />
+                />
                 );
-                })}
+            })}
             </svg>
 
             {/* Малюємо вузли (Skills) */}
