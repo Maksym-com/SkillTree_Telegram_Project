@@ -29,12 +29,14 @@ const SkillTree = ({
       const skill = skills[id];
       if (!skill) return;
 
-      const childrenIds = Object.keys(skills).filter(key => skills[key].parent === id);
+      const childrenIds = Object.keys(skills).filter(key => 
+        skills[key].parent === id || skills[key].parent_id === id
+      );
 
       result[id] = {
         ...skill,
         id,
-        parent: skill.parent,
+        parentId: skill.parent || skill.parent_id, 
         basePos: { x, y },
         depth
       };
@@ -46,11 +48,7 @@ const SkillTree = ({
       const angleStep = childrenIds.length > 1 ? currentSpread / (childrenIds.length - 1) : 0;
 
       childrenIds.forEach((childId, index) => {
-        const currentAngle =
-          childrenIds.length === 1
-            ? parentAngle
-            : startAngle + angleStep * index;
-
+        const currentAngle = childrenIds.length === 1 ? parentAngle : startAngle + angleStep * index;
         const rad = (currentAngle * Math.PI) / 180;
         const length = baseLength * Math.pow(0.82, depth);
 
@@ -61,7 +59,12 @@ const SkillTree = ({
       });
     };
 
-    const rootId = Object.keys(skills).find(id => skills[id].parent === null);
+    const rootId = Object.keys(skills).find(id => 
+      skills[id].parent === null || 
+      skills[id].parent_id === null || 
+      (!skills[id].parent && !skills[id].parent_id)
+    );
+
     if (rootId) build(rootId, centerX, startY, isLight ? -90 : 90);
 
     return result;
@@ -72,7 +75,7 @@ const SkillTree = ({
   const inactiveColor = isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1');
   const size = 28;
 
-  if (!skills) return null;
+  if (!skills || Object.keys(treeData).length === 0) return null;
 
   return (
     <TransformWrapper
@@ -82,7 +85,7 @@ const SkillTree = ({
       limitToBounds={false}
       panning={{ disabled: draggingId !== null }}
     >
-      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+      <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
         <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
           {/* SVG BRANCHES */}
@@ -111,80 +114,85 @@ const SkillTree = ({
             />
 
             {Object.entries(treeData).map(([id, data]) => {
-            const offset = offsets[id] || { x: 0, y: 0 };
-            const x = data.basePos.x + offset.x;
-            const y = data.basePos.y + offset.y;
+              const parent = treeData[data.parentId];
+              if (!parent) return null;
 
-            return (
-                <div
-                key={id}
-                style={{
-                    position: 'absolute',
-                    // Тільки ці два параметри визначають місцезнаходження
-                    left: `${x}px`, 
-                    top: `${y}px`,
-                    // Центрування ромба відносно точки (x,y)
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 10
-                }}
-                >
-                {/* Твій ромб і текст тут */}
-                <div style={{ width: '28px', height: '28px', transform: 'rotate(45deg)', background: 'blue' }} />
-                </div>
-            );
+              const offset = offsets[id] || { x: 0, y: 0 };
+              const parentOffset = offsets[data.parentId] || { x: 0, y: 0 };
+
+              const x1 = parent.basePos.x + parentOffset.x;
+              const y1 = parent.basePos.y + parentOffset.y;
+              const x2 = data.basePos.x + offset.x;
+              const y2 = data.basePos.y + offset.y;
+
+              const dx = x2 - x1;
+              const dy = y2 - y1;
+              const curveStrength = 0.25 + data.depth * 0.05;
+              const cx = x1 + dx / 2 - dy * curveStrength;
+              const cy = y1 + dy / 2 + dx * curveStrength;
+
+              return (
+                <motion.path
+                  key={`line-${id}`}
+                  d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+                  stroke={data.level > 0 ? accentColor : inactiveColor}
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                />
+              );
             })}
           </svg>
 
           {/* SKILL NODES */}
-            {Object.entries(treeData).map(([id, data]) => {
+          {Object.entries(treeData).map(([id, data]) => {
             const offset = offsets[id] || { x: 0, y: 0 };
             const x = data.basePos.x + offset.x;
             const y = data.basePos.y + offset.y;
-            const isRoot = data.parent === null; // Перевірка, чи це корінь
+            const isRoot = !data.parentId;
 
             return (
-                <div
+              <div
                 key={id}
                 style={{
-                    position: 'absolute',
-                    // Використовуємо точні координати без зміщень тут
-                    left: x,
-                    top: y,
-                    zIndex: draggingId === id ? 100 : 10,
+                  position: 'absolute',
+                  left: x,
+                  top: y,
+                  zIndex: draggingId === id ? 100 : 10,
                 }}
-                >
+              >
                 <motion.div
-                    drag={!isRoot} // Забороняємо тягати корінь, щоб він не відривався від стовбура
-                    dragMomentum={false}
-                    onDragStart={() => setDraggingId(id)}
-                    onDragEnd={() => setDraggingId(null)}
-                    onDrag={(e, info) => {
+                  drag={!isRoot}
+                  dragMomentum={false}
+                  onDragStart={() => setDraggingId(id)}
+                  onDragEnd={() => setDraggingId(null)}
+                  onDrag={(e, info) => {
                     setOffsets(prev => ({
-                        ...prev,
-                        [id]: {
+                      ...prev,
+                      [id]: {
                         x: (prev[id]?.x || 0) + info.delta.x,
                         y: (prev[id]?.y || 0) + info.delta.y
-                        }
+                      }
                     }));
-                    }}
-                    onTap={() => {
+                  }}
+                  onTap={() => {
                     setSelectedSkill(id);
                     setPopupMode('menu');
                     setShowPopup(true);
-                    }}
-                    style={{
+                  }}
+                  style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    // Важливо: translateX(-50%) і translateY(-50%) роблять центр ромба точкою відліку
                     x: "-50%", 
                     y: "-50%",
-                    position: "absolute", // Це допоможе Framer Motion краще рахувати дельту
+                    position: "absolute",
                     cursor: isRoot ? 'default' : (draggingId === id ? 'grabbing' : 'grab')
-                    }}
+                  }}
                 >
-                    {/* Внутрішній контент (ромб і текст) */}
-                    <div style={{
+                  <div style={{
                     width: `${size}px`,
                     height: `${size}px`,
                     transform: 'rotate(45deg)',
@@ -192,17 +200,27 @@ const SkillTree = ({
                     border: `2px solid ${data.level > 0 ? accentColor : 'rgba(255,255,255,0.1)'}`,
                     boxShadow: data.level > 0 ? `0 0 15px ${accentColor}66` : 'none',
                     transition: 'background 0.3s ease'
-                    }} />
-                    
-                    {/* Текст навички */}
-                    <div style={{ /* твої стилі тексту */ }}>
+                  }} />
+                  
+                  <div style={{
+                    marginTop: '12px',
+                    textAlign: 'center',
+                    color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    textTransform: 'uppercase'
+                  }}>
                     {data.name}
+                    <div style={{ fontSize: '9px', opacity: 0.6 }}>
+                      {Math.floor(data.level)}%
                     </div>
+                  </div>
                 </motion.div>
-                </div>
+              </div>
             );
-            })}
-
+          })}
         </div>
       </TransformComponent>
     </TransformWrapper>
