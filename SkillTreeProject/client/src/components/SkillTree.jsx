@@ -115,20 +115,29 @@ const SkillTree = ({
               const x2 = data.basePos.x + offset.x;
               const y2 = data.basePos.y + offset.y;
 
-              return (
-                <motion.line
-                  key={`line-${id}`}
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={data.level > 0 ? accentColor : inactiveColor}
-                  strokeWidth="2"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                />
-              );
-            })}
+              const dx = x2 - x1;
+            const dy = y2 - y1;
+
+            const curveStrength = 0.25 + data.depth * 0.05;
+
+            // контрольна точка для вигину
+            const cx = x1 + dx / 2 - dy * curveStrength;
+            const cy = y1 + dy / 2 + dx * curveStrength;
+
+            return (
+            <motion.path
+                key={`line-${id}`}
+                d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+                stroke={data.level > 0 ? accentColor : inactiveColor}
+                strokeWidth="2"
+                fill="none"
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.6 }}
+            />
+            );
+        })}
           </svg>
 
           {/* SKILL NODES */}
