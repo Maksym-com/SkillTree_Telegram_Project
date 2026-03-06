@@ -8,6 +8,8 @@ const SkillTree = ({
   draggingId, setDraggingId 
 }) => {
 
+    console.log("Отримані скіли з сервера:", skills);
+
   const treeData = useMemo(() => {
     // ЗАХИСТ: Якщо даних ще немає, не ламаємо додаток
     if (!skills || typeof skills !== 'object' || Object.keys(skills).length === 0) return {};
