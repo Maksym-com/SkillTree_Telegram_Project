@@ -32,6 +32,11 @@ def get_db():
 
 # --- Ендпоінти Користувача ---
 
+@app.get("/")
+def home():
+    return {"status": "Skill Tree API is running", "docs": "/docs"}
+
+
 @app.get("/user/init/{tg_id}")
 def init_user(tg_id: int, username: Optional[str] = None, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.telegram_id == tg_id).first()

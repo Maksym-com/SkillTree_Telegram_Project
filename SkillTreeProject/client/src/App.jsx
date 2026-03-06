@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
-const API_URL = 'https://skilltree-telegram-project.onrender.com/';
+const API_URL = 'https://skilltree-telegram-project.onrender.com';
 
 const themes = {
   dark: {
