@@ -2,10 +2,17 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
-const SkillTree = ({ 
-  skills, offsets, setOffsets, world, theme, 
-  setSelectedSkill, setShowPopup, setPopupMode, 
-  draggingId, setDraggingId 
+const SkillTree = ({
+  skills,
+  offsets,
+  setOffsets,
+  world,
+  theme,
+  setSelectedSkill,
+  setShowPopup,
+  setPopupMode,
+  draggingId,
+  setDraggingId
 }) => {
 
   const treeData = useMemo(() => {
@@ -63,6 +70,7 @@ const SkillTree = ({
   const isAbyss = world === 'abyss';
   const accentColor = isAbyss ? '#ff4d4d' : '#3b82f6';
   const inactiveColor = isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1');
+  const size = 28;
 
   if (!skills) return null;
 
@@ -116,34 +124,30 @@ const SkillTree = ({
               const y2 = data.basePos.y + offset.y;
 
               const dx = x2 - x1;
-            const dy = y2 - y1;
+              const dy = y2 - y1;
 
-            const curveStrength = 0.25 + data.depth * 0.05;
+              const curveStrength = 0.25 + data.depth * 0.05;
+              const cx = x1 + dx / 2 - dy * curveStrength;
+              const cy = y1 + dy / 2 + dx * curveStrength;
 
-
-            // контрольна точка для вигину
-            const cx = x1 + dx / 2 - dy * curveStrength;
-            const cy = y1 + dy / 2 + dx * curveStrength;
-
-            return (
-            <motion.path
-                key={`line-${id}`}
-                d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
-                stroke={data.level > 0 ? accentColor : inactiveColor}
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.6 }}
-            />
-            );
-        })}
+              return (
+                <motion.path
+                  key={`line-${id}`}
+                  d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+                  stroke={data.level > 0 ? accentColor : inactiveColor}
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.6 }}
+                />
+              );
+            })}
           </svg>
 
           {/* SKILL NODES */}
           {Object.entries(treeData).map(([id, data]) => {
-
             const offset = offsets[id] || { x: 0, y: 0 };
             const x = data.basePos.x + offset.x;
             const y = data.basePos.y + offset.y;
@@ -153,9 +157,8 @@ const SkillTree = ({
                 key={id}
                 style={{
                   position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  transform: `translate(${x}px, ${y}px)`,
+                  left: x - size / 2,
+                  top: y - size / 2,
                   zIndex: draggingId === id ? 100 : 10,
                 }}
               >
@@ -187,8 +190,8 @@ const SkillTree = ({
                 >
                   <div
                     style={{
-                      width: '28px',
-                      height: '28px',
+                      width: `${size}px`,
+                      height: `${size}px`,
                       transform: 'rotate(45deg)',
                       background: data.level > 0 ? accentColor : inactiveColor,
                       border: `2px solid ${data.level > 0 ? accentColor : 'rgba(255,255,255,0.1)'}`,
@@ -196,7 +199,6 @@ const SkillTree = ({
                       transition: 'background 0.3s ease'
                     }}
                   />
-
                   <div
                     style={{
                       marginTop: '12px',
