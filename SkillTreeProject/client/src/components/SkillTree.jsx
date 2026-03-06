@@ -147,81 +147,72 @@ const SkillTree = ({
           </svg>
 
           {/* SKILL NODES */}
-          {Object.entries(treeData).map(([id, data]) => {
+            {Object.entries(treeData).map(([id, data]) => {
             const offset = offsets[id] || { x: 0, y: 0 };
             const x = data.basePos.x + offset.x;
             const y = data.basePos.y + offset.y;
+            const isRoot = data.parent === null; // Перевірка, чи це корінь
 
             return (
-              <div
+                <div
                 key={id}
                 style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  transform: `translate(${x}px, ${y}px)`,
-                  zIndex: draggingId === id ? 100 : 10,
+                    position: 'absolute',
+                    // Використовуємо точні координати без зміщень тут
+                    left: x,
+                    top: y,
+                    zIndex: draggingId === id ? 100 : 10,
                 }}
-              >
+                >
                 <motion.div
-                  drag
-                  dragMomentum={false}
-                  onDragStart={() => setDraggingId(id)}
-                  onDragEnd={() => setDraggingId(null)}
-                  onDrag={(e, info) => {
+                    drag={!isRoot} // Забороняємо тягати корінь, щоб він не відривався від стовбура
+                    dragMomentum={false}
+                    onDragStart={() => setDraggingId(id)}
+                    onDragEnd={() => setDraggingId(null)}
+                    onDrag={(e, info) => {
                     setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
+                        ...prev,
+                        [id]: {
                         x: (prev[id]?.x || 0) + info.delta.x,
                         y: (prev[id]?.y || 0) + info.delta.y
-                      }
+                        }
                     }));
-                  }}
-                  onTap={() => {
+                    }}
+                    onTap={() => {
                     setSelectedSkill(id);
                     setPopupMode('menu');
                     setShowPopup(true);
-                  }}
-                  style={{
+                    }}
+                    style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    transform: 'translate(-50%, -50%)', 
-                    cursor: draggingId === id ? 'grabbing' : 'pointer'
-                  }}
+                    // Важливо: translateX(-50%) і translateY(-50%) роблять центр ромба точкою відліку
+                    x: "-50%", 
+                    y: "-50%",
+                    position: "absolute", // Це допоможе Framer Motion краще рахувати дельту
+                    cursor: isRoot ? 'default' : (draggingId === id ? 'grabbing' : 'grab')
+                    }}
                 >
-                  <div
-                    style={{
-                      width: `${size}px`,
-                      height: `${size}px`,
-                      transform: 'rotate(45deg)',
-                      background: data.level > 0 ? accentColor : inactiveColor,
-                      border: `2px solid ${data.level > 0 ? accentColor : 'rgba(255,255,255,0.1)'}`,
-                      boxShadow: data.level > 0 ? `0 0 15px ${accentColor}66` : 'none',
-                      transition: 'background 0.3s ease'
-                    }}
-                  />
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      textAlign: 'center',
-                      color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap',
-                      pointerEvents: 'none',
-                      textTransform: 'uppercase'
-                    }}
-                  >
+                    {/* Внутрішній контент (ромб і текст) */}
+                    <div style={{
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    transform: 'rotate(45deg)',
+                    background: data.level > 0 ? accentColor : inactiveColor,
+                    border: `2px solid ${data.level > 0 ? accentColor : 'rgba(255,255,255,0.1)'}`,
+                    boxShadow: data.level > 0 ? `0 0 15px ${accentColor}66` : 'none',
+                    transition: 'background 0.3s ease'
+                    }} />
+                    
+                    {/* Текст навички */}
+                    <div style={{ /* твої стилі тексту */ }}>
                     {data.name}
-                    <div style={{ fontSize: '9px', opacity: 0.6 }}>
-                      {Math.floor(data.level)}%
                     </div>
-                  </div>
                 </motion.div>
-              </div>
+                </div>
             );
-          })}
+            })}
 
         </div>
       </TransformComponent>
