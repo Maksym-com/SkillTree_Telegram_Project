@@ -1,18 +1,13 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 const SkillTree = ({
   skills,
-  offsets,
-  setOffsets,
   world,
   theme,
   setSelectedSkill,
   setShowPopup,
-  setPopupMode,
-  draggingId,
-  setDraggingId
+  setPopupMode
 }) => {
 
   const treeData = useMemo(() => {
@@ -37,7 +32,7 @@ const SkillTree = ({
         ...skill,
         id,
         parent: skill.parent || skill.parent_id, 
-        pos: { x, y }, // ТУТ: змінено з basePos на pos, щоб збігалося з JSX
+        pos: { x, y },
         depth
       };
 
@@ -70,10 +65,6 @@ const SkillTree = ({
     return result;
   }, [skills, world]);
 
-  const isAbyss = world === 'abyss';
-  const accentColor = isAbyss ? '#ff4d4d' : '#3b82f6';
-  const inactiveColor = isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1');
-
   if (!skills || Object.keys(treeData).length === 0) return null;
 
   return (
@@ -82,30 +73,20 @@ const SkillTree = ({
       centerOnInit
       minScale={0.2}
       limitToBounds={false}
-      panning={{ disabled: draggingId !== null }}
     >
       <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
         <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
+          {/* Лінії */}
           <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-              <defs>
-                <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor={theme === 'dark' ? '#020617' : '#f8fafc'} stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <rect x="998" y={world === 'light' ? 1750 : 0} width="4" height="250" fill="url(#trunkGradient)" />
-            
             {Object.entries(treeData).map(([id, data]) => {
               const parent = treeData[data.parent];
               if (!parent) return null;
 
-              // Враховуємо офсети для ліній, щоб вони тягнулися за ромбами
-              const x1 = parent.pos.x + (offsets[parent.id]?.x || 0);
-              const y1 = parent.pos.y + (offsets[parent.id]?.y || 0);
-
-              const x2 = data.pos.x + (offsets[id]?.x || 0);
-              const y2 = data.pos.y + (offsets[id]?.y || 0);
+              const x1 = parent.pos.x;
+              const y1 = parent.pos.y;
+              const x2 = data.pos.x;
+              const y2 = data.pos.y;
 
               return (
                 <path key={`line-${id}`}
@@ -119,72 +100,47 @@ const SkillTree = ({
             })}
           </svg>
 
-            {Object.entries(treeData).map(([id, data]) => (
-              <div 
-                key={`node-${id}`} 
-                style={{ 
-                  position: 'absolute', 
-                  left: data.pos.x + (offsets[id]?.x || 0),
-                  top: data.pos.y + (offsets[id]?.y || 0),
-                  transform: 'translate(-50%, -50%)', 
-                  zIndex: draggingId === id ? 100 : 5 
-                }}
-              >
-                <motion.div
-                  drag={data.parent !== null} // Корінь не тягаємо
-                  dragElastic={0}
-                  dragMomentum={false}
-                  onTap={() => {
-                    setSelectedSkill(id);
-                    setPopupMode('menu');
-                    setShowPopup(true);
-                  }}
-                  style={{
-                    x: offsets[id]?.x || 0,
-                    y: offsets[id]?.y || 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center'
-                  }}
-                  onDragStart={() => setDraggingId(id)}
-                  onDrag={(e, info) => {
-                    setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
-                        x: (prev[id]?.x || 0) + info.delta.x,
-                        y: (prev[id]?.y || 0) + info.delta.y
-                      }
-                    }));
-                  }}
-                  onDragEnd={() => setDraggingId(null)}
-                  whileDrag={{ scale: 1.1 }}
-                >
-                  <div style={{
-                    width: data.depth === 0 ? '36px' : '24px',
-                    height: data.depth === 0 ? '36px' : '24px',
-                    background: draggingId === id 
-                      ? '#f59e0b' 
-                      : (data.level >= 100 ? '#5ad3c5' : data.level > 0 ? '#45da8f' : (theme === 'dark' ? '#1e293b' : '#cbd5e1')),
-                    transform: 'rotate(45deg)',
-                    border: theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
-                    boxShadow: data.level > 0 ? `0 0 15px rgba(16, 211, 169, 0.5)` : 'none',
-                    cursor: 'grab'
-                  }} />
+          {/* Ромби */}
+          {Object.entries(treeData).map(([id, data]) => (
+            <div 
+              key={`node-${id}`} 
+              style={{ 
+                position: 'absolute', 
+                left: data.pos.x,
+                top: data.pos.y,
+                transform: 'translate(-50%, -50%)', 
+                zIndex: 5,
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                setSelectedSkill(id);
+                setPopupMode('menu');
+                setShowPopup(true);
+              }}
+            >
+              <div style={{
+                width: data.depth === 0 ? '36px' : '24px',
+                height: data.depth === 0 ? '36px' : '24px',
+                background: data.level >= 100 ? '#5ad3c5' : data.level > 0 ? '#45da8f' : (theme === 'dark' ? '#1e293b' : '#cbd5e1'),
+                transform: 'rotate(45deg)',
+                border: theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                boxShadow: data.level > 0 ? `0 0 15px rgba(16, 211, 169, 0.5)` : 'none',
+              }} />
 
-                  <div style={{
-                    marginTop: '12px',
-                    color: theme === 'dark' ? '#fff' : '#0f172a',
-                    fontSize: '10px',
-                    whiteSpace: 'nowrap',
-                    textAlign: 'center',
-                    pointerEvents: 'none'
-                  }}>
-                    <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                    <div style={{ color: '#2cc3a0' }}>{Math.floor(data.level)}%</div>
-                  </div>
-                </motion.div>
+              <div style={{
+                marginTop: '12px',
+                color: theme === 'dark' ? '#fff' : '#0f172a',
+                fontSize: '10px',
+                whiteSpace: 'nowrap',
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <div style={{ fontWeight: 'bold' }}>{data.name}</div>
+                <div style={{ color: '#2cc3a0' }}>{Math.floor(data.level)}%</div>
               </div>
-            ))}
+            </div>
+          ))}
+
         </div>
       </TransformComponent>
     </TransformWrapper>
