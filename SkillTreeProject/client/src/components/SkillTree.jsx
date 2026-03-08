@@ -72,10 +72,10 @@ const treeData = useMemo(() => {
       limitToBounds={false}
     >
       <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-        <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
+        <div style={{ width: "2000px", height: "2000px", position: "relative", margin: 0, padding: 0 }}>
 
           {/* Лінії */}
-          <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
+          <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, top: 0, left: 0 }}>
             {Object.entries(treeData).map(([id, data]) => {
               const parent = treeData[data.parent];
               if (!parent) return null;
