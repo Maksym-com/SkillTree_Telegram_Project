@@ -71,13 +71,17 @@ const SkillTree = ({
 
   const isAbyss = world === 'abyss';
 
+  // базова позиція без зсуву
+  const getBasePos = id => ({
+    x: treeData[id]?.pos.x || 0,
+    y: treeData[id]?.pos.y || 0,
+  });
+
+  // позиція, яку використовують шляхи
   const getPos = id => {
-    const d = treeData[id];
-    if (!d) return { x: 0, y: 0 };
-    return {
-      x: d.pos.x + (offsets[id]?.x || 0),
-      y: d.pos.y + (offsets[id]?.y || 0),
-    };
+    const base = getBasePos(id);
+    const off = offsets[id] || { x: 0, y: 0 };
+    return { x: base.x + off.x, y: base.y + off.y };
   };
 
   if (!skills || Object.keys(treeData).length === 0) return null;
@@ -135,17 +139,20 @@ const SkillTree = ({
 
           {/* ВУЗЛИ (РОМБИ) */}
           {Object.entries(treeData).map(([id, data]) => {
-            const { x, y } = getPos(id);      // <–– зсув беремо тут
+            const { x: baseX, y: baseY } = getBasePos(id);
+            const off = offsets[id] || { x: 0, y: 0 };
 
             return (
               <div
                 key={`node-${id}`}
                 style={{
                   position: 'absolute',
-                  left: x,
-                  top: y,
+                  left: baseX,
+                  top: baseY,
                   transform: 'translate(-50%, -50%)',
                   zIndex: draggingId === id ? 100 : 5
+                  // необов’язково, але корисно для дебагу:
+                  // border: '1px solid red'
                 }}
               >
                 <motion.div
@@ -158,13 +165,8 @@ const SkillTree = ({
                     setShowPopup(true);
                   }}
                   style={{
-                    // тут можна залишити x:0 y:0 – зміщення
-                    // застосовується в <div> через getPos;
-                    // або, як альтернатива, вказати offsets[id] прямо,
-                    // але в будь‑якому разі вони не повинні дублюватись
-                    // в обох місцях із різними джерелами.
-                    x: 0,
-                    y: 0,
+                    x: off.x,
+                    y: off.y,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
