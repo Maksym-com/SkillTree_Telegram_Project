@@ -119,7 +119,7 @@ const SkillTree = ({
                   } 
                   strokeWidth={Math.max(2, 8 - data.depth * 1.5)} 
                   fill="none" 
-                  style={{ opacity: 0.6, transition: 'stroke 0.3s' }}
+                  style={{ opacity: 0.6, transition: 'stroke 0.3s', pointerEvents: 'none' }}
                 />
               );
             })}
