@@ -160,11 +160,9 @@ const SkillTree = ({
                 }}
                 style={{
                   position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  x: baseX + off.x,
-                  y: baseY + off.y,
-                  transform: 'translate(-50%, -50%)',  // <-- додано для центрування
+                  left: baseX + off.x,           // <-- замість x:
+                  top: baseY + off.y,            // <-- замість y:
+                  transform: 'translate(-50%, -50%)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
