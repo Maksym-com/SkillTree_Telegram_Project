@@ -148,70 +148,64 @@ const SkillTree = ({
             const off = offsets[id] || { x: 0, y: 0 };
 
             return (
-              <div
+              <motion.div
                 key={`node-${id}`}
+                drag
+                dragElastic={0}
+                dragMomentum={false}
+                onTap={() => {
+                  setSelectedSkill(id);
+                  setPopupMode('menu');
+                  setShowPopup(true);
+                }}
                 style={{
                   position: 'absolute',
-                  left: baseX,
-                  top: baseY,
-                  transform: 'translate(-50%, -50%)',
+                  left: 0,
+                  top: 0,
+                  x: baseX + off.x,                    // <-- тут позиція
+                  y: baseY + off.y,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  cursor: draggingId === id ? 'grabbing' : 'grab',
                   zIndex: draggingId === id ? 100 : 5
                 }}
+                onDragStart={() => setDraggingId(id)}
+                onDrag={(e, info) => {
+                  setOffsets(prev => ({
+                    ...prev,
+                    [id]: {
+                      x: (prev[id]?.x || 0) + info.delta.x,
+                      y: (prev[id]?.y || 0) + info.delta.y
+                    }
+                  }));
+                }}
+                onDragEnd={() => setDraggingId(null)}
+                whileDrag={{ scale: 1.15 }}
+                animate={{ scale: draggingId === id ? 1.15 : 1 }}
               >
-                <motion.div
-                  drag
-                  dragElastic={0}
-                  dragMomentum={false}
-                  onTap={() => {
-                    setSelectedSkill(id);
-                    setPopupMode('menu');
-                    setShowPopup(true);
-                  }}
-                  style={{
-                    x: off.x,
-                    y: off.y,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    cursor: draggingId === id ? 'grabbing' : 'grab'
-                  }}
-                  onDragStart={() => setDraggingId(id)}
-                  onDrag={(e, info) => {
-                    setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
-                        x: (prev[id]?.x || 0) + info.delta.x,
-                        y: (prev[id]?.y || 0) + info.delta.y
-                      }
-                    }));
-                  }}
-                  onDragEnd={() => setDraggingId(null)}
-                  whileDrag={{ scale: 1.15 }}
-                  animate={{ scale: draggingId === id ? 1.15 : 1 }}
-                >
-                  <div style={{
-                    width: data.depth === 0 ? '36px' : '24px',
-                    height: data.depth === 0 ? '36px' : '24px',
-                    background: draggingId === id ? '#f59e0b' : (data.level >= 100 ? (isAbyss ? '#f00' : '#5ad3c5') : data.level > 0 ? (isAbyss ? '#900' : '#45da8f') : (isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1'))),
-                    transform: 'rotate(45deg)',
-                    border: isAbyss ? '1px solid #600' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'),
-                    boxShadow: data.level > 0 ? `0 0 15px ${isAbyss ? 'rgba(255, 0, 0, 0.5)' : 'rgba(16, 211, 169, 0.5)'}` : 'none',
-                    transition: 'background 0.3s'
-                  }} />
-                  <div style={{
-                    marginTop: '12px',
-                    color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
-                    fontSize: '10px',
-                    whiteSpace: 'nowrap',
-                    textAlign: 'center',
-                    pointerEvents: 'none',
-                    fontWeight: 'bold'
-                  }}>
-                    {data.name}
-                    <div style={{ color: isAbyss ? '#ff0000' : '#2cc3a0', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
-                  </div>
-                </motion.div>
-              </div>
+                <div style={{
+                  width: data.depth === 0 ? '36px' : '24px',
+                  height: data.depth === 0 ? '36px' : '24px',
+                  background: draggingId === id ? '#f59e0b' : (data.level >= 100 ? (isAbyss ? '#f00' : '#5ad3c5') : data.level > 0 ? (isAbyss ? '#900' : '#45da8f') : (isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1'))),
+                  transform: 'rotate(45deg)',
+                  border: isAbyss ? '1px solid #600' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'),
+                  boxShadow: data.level > 0 ? `0 0 15px ${isAbyss ? 'rgba(255, 0, 0, 0.5)' : 'rgba(16, 211, 169, 0.5)'}` : 'none',
+                  transition: 'background 0.3s'
+                }} />
+                <div style={{
+                  marginTop: '12px',
+                  color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
+                  fontSize: '10px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  pointerEvents: 'none',
+                  fontWeight: 'bold'
+                }}>
+                  {data.name}
+                  <div style={{ color: isAbyss ? '#ff0000' : '#2cc3a0', fontSize: '9px' }}>{Math.floor(data.level)}%</div>
+                </div>
+              </motion.div>
             );
           })}
         </div>
