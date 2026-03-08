@@ -2,6 +2,45 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
+/**
+ * SkillTree Component
+ * 
+ * Renders an interactive skill tree visualization with draggable nodes and connecting lines.
+ * Supports two worlds (light/abyss) with different visual themes and positioning logic.
+ * 
+ * @component
+ * @param {Object} props - Component properties
+ * @param {Object} props.skills - Skill data object where keys are skill IDs and values contain skill details
+ * @param {string} props.skills[].name - Display name of the skill
+ * @param {number} props.skills[].level - Current level/progress percentage (0-100)
+ * @param {string} props.skills[].parent - Parent skill ID
+ * @param {string} props.skills[].parent_id - Alternative parent skill ID field
+ * @param {Object} props.offsets - Position offsets for skills {skillId: {x, y}}
+ * @param {Function} props.setOffsets - State setter for skill position offsets
+ * @param {string} props.world - World type: 'light', 'abyss', or other
+ * @param {string} props.theme - Visual theme: 'dark' or 'light'
+ * @param {Function} props.setSelectedSkill - State setter for selected skill ID
+ * @param {Function} props.setShowPopup - State setter for popup visibility
+ * @param {Function} props.setPopupMode - State setter for popup mode type
+ * @param {string|null} props.draggingId - Currently dragging skill ID or null
+ * @param {Function} props.setDraggingId - State setter for dragging skill ID
+ * 
+ * @returns {React.ReactElement|null} Rendered skill tree with SVG connections or null if no skills
+ * 
+ * @example
+ * <SkillTree 
+ *   skills={skillsData}
+ *   offsets={positionOffsets}
+ *   setOffsets={setPositionOffsets}
+ *   world="light"
+ *   theme="dark"
+ *   setSelectedSkill={setSelected}
+ *   setShowPopup={setShow}
+ *   setPopupMode={setMode}
+ *   draggingId={currentDrag}
+ *   setDraggingId={setCurrentDrag}
+ * />
+ */
 const SkillTree = ({
   skills,
   offsets,
@@ -126,14 +165,20 @@ const SkillTree = ({
               const parent = treeData[data.parent];
               if (!parent) return null;
 
-              const { x: x1, y: y1 } = getPos(data.parent);
-              const { x: x2, y: y2 } = getPos(id);
+              const parentOffset = offsets[data.parent] || { x: 0, y: 0 };
+              const childOffset = offsets[id] || { x: 0, y: 0 };
+              const { x: x1, y: y1 } = getBasePos(data.parent);
+              const { x: x2, y: y2 } = getBasePos(id);
+              const x1Adjusted = x1 + parentOffset.x;
+              const y1Adjusted = y1 + parentOffset.y;
+              const x2Adjusted = x2 + childOffset.x;
+              const y2Adjusted = y2 + childOffset.y;
               const curveOffset = isAbyss ? 40 : -40;
 
               return (
                 <path 
                   key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${(x1 + x2) / 2} ${(y1 + y2) / 2 + curveOffset} ${x2} ${y2}`}
+                  d={`M ${x1Adjusted} ${y1Adjusted} Q ${(x1Adjusted + x2Adjusted) / 2} ${(y1Adjusted + y2Adjusted) / 2 + curveOffset} ${x2Adjusted} ${y2Adjusted}`}
                   stroke={data.level > 0 ? (isAbyss ? "#ff4d4d" : "#119484") : (isAbyss ? "#300" : (theme === 'dark' ? "#1e293b" : "#cbd5e1"))}
                   strokeWidth={Math.max(2, 8 - data.depth * 1.5)}
                   fill="none"
