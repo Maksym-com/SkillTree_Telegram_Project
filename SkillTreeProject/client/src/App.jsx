@@ -39,27 +39,27 @@ const themes = {
 
 
 function App() {
-  const [userId, setUserId] = useState(null);
-  const [skills, setSkills] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMode, setPopupMode] = useState('menu');
-  const [selectedSkill, setSelectedSkill] = useState(null);
-  const [newSkillName, setNewSkillName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userAvatar, setUserAvatar] = useState(null);
-  const [firstName, setFirstName] = useState('');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
-  const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [theme, setTheme] = useState('dark');
+  const [userId, setUserId] = useState(null);
+  const [skills, setSkills] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMode, setPopupMode] = useState('menu');
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [firstName, setFirstName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [theme, setTheme] = useState('dark');
   const [world, setWorld] = useState('light');
   
-  
-  // DRAG STATE
-  const [draggingId, setDraggingId] = useState(null);
-  const [offsets, setOffsets] = useState({});
+ 
+  // DRAG STATE
+  const [draggingId, setDraggingId] = useState(null);
+  const [offsets, setOffsets] = useState({});
 
-  const inputRef = useRef(null);
+  const inputRef = useRef(null);
   const colors = useMemo(() => {
     if (world === 'abyss') return themes.abyss;
     return themes[theme];
@@ -85,104 +85,109 @@ function App() {
     transition: 'all 0.2s ease'
   });
 
-  const fetchSkills = useCallback(async (uid) => {
-    if (!uid) return;
-    try {
-      const res = await fetch(`${API_URL}/skills/${uid}`, {
-        headers: { "Bypass-Tunnel-Reminder": "true" }
-      });
-      const data = await res.json();
-      setSkills(data);
-    } catch (err) { console.error("Fetch error:", err); }
-  }, []);
+  const fetchSkills = useCallback(async (uid) => {
+    if (!uid) return;
+    try {
+      const res = await fetch(`${API_URL}/skills/${uid}`, {
+        headers: { "Bypass-Tunnel-Reminder": "true" }
+      });
+      const data = await res.json();
+      setSkills(data);
+    } catch (err) { console.error("Fetch error:", err); }
+  }, []);
 
-  useEffect(() => {
-    const initApp = async () => {
-      let tgId = 12345678; 
-      let username = "LocalUser";
-      if (tg) {
-        tg.ready(); tg.expand();
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-          tgId = user.id;
-          username = user.username || user.first_name;
-          setFirstName(user.first_name || "User");
-          setUserAvatar(user.photo_url || null);
-        }
-      }
-      try {
-        const res = await fetch(`${API_URL}/user/init/${tgId}?username=${encodeURIComponent(username)}`, {
-          headers: { "Bypass-Tunnel-Reminder": "true" }
-        });
-        const userData = await res.json();
-        setUserId(userData.user_id);
-        fetchSkills(userData.user_id);
-      } catch (err) { console.error("Init error"); }
-    };
-    initApp();
-  }, [fetchSkills]);
+  useEffect(() => {
+    const initApp = async () => {
+      let tgId = 12345678; 
+      let username = "LocalUser";
+      if (tg) {
+        tg.ready(); tg.expand();
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+          tgId = user.id;
+          username = user.username || user.first_name;
+          setFirstName(user.first_name || "User");
+          setUserAvatar(user.photo_url || null);
+        }
+      }
+      try {
+        const res = await fetch(`${API_URL}/user/init/${tgId}?username=${encodeURIComponent(username)}`, {
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        const userData = await res.json();
+        setUserId(userData.user_id);
+        fetchSkills(userData.user_id);
+      } catch (err) { console.error("Init error"); }
+    };
+    initApp();
+  }, [fetchSkills]);
 
+  // --- ACTIONS ---
+  const trainSkill = async (id) => {
+    try {
+      await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
+      fetchSkills(userId);
+    } catch (err) { console.error("Train error"); }
+  };
 
-  // --- ACTIONS ---
-  const trainSkill = async (id) => {
-    try {
-      await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
-      fetchSkills(userId);
-    } catch (err) { console.error("Train error"); }
-  };
+  const handleAddSkill = async () => {
+    if (!newSkillName.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    const newId = `skill_${Math.random().toString(36).substr(2, 9)}`;
+    const payload = { id: newId, name: newSkillName.trim(), parent_id: selectedSkill, user_id: Number(userId) };
+    try {
+      const res = await fetch(`${API_URL}/skills/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) { setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId); }
+    } catch (err) { console.error("Add error"); } finally { setIsSubmitting(false); }
+  };
 
-  const handleAddSkill = async () => {
-    if (!newSkillName.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    const newId = `skill_${Math.random().toString(36).substr(2, 9)}`;
-    const payload = { id: newId, name: newSkillName.trim(), parent_id: selectedSkill, user_id: Number(userId) };
-    try {
-      const res = await fetch(`${API_URL}/skills/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) { setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId); }
-    } catch (err) { console.error("Add error"); } finally { setIsSubmitting(false); }
-  };
+  const handleDelete = async (id) => {
+    if (id.startsWith('root_')) return;
+    if (window.confirm("Delete this branch?")) {
+      try {
+        await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
+        setShowPopup(false); fetchSkills(userId);
+      } catch (err) { console.error("Delete error"); }
+    }
+  };
 
-  const handleDelete = async (id) => {
-    if (id.startsWith('root_')) return;
-    if (window.confirm("Delete this branch?")) {
-      try {
-        await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
-        setShowPopup(false); fetchSkills(userId);
-      } catch (err) { console.error("Delete error"); }
-    }
-  };
+  const handleResetTree = async () => {
+    if (window.confirm("Ви впевнені? Це видалить усі навички, крім головної!")) {
+      try {
+        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
+          method: 'DELETE',
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        if (res.ok) {
+          setOffsets({}); // Очищаємо локальні зсуви
+          fetchSkills(userId); // Перезавантажуємо дерево
+          setShowProfilePopup(false);
+        }
+      } catch (err) { console.error("Reset error:", err); }
+    }
+  };
 
-  const handleResetTree = async () => {
-    if (window.confirm("Ви впевнені? Це видалить усі навички, крім головної!")) {
-      try {
-        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
-          method: 'DELETE',
-          headers: { "Bypass-Tunnel-Reminder": "true" }
-        });
-        if (res.ok) {
-          setOffsets({}); // Очищаємо локальні зсуви
-          fetchSkills(userId); // Перезавантажуємо дерево
-          setShowProfilePopup(false);
-        }
-      } catch (err) { console.error("Reset error:", err); }
-    }
-  };
+  const handleRename = async () => {
+    if (!editedName.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/skills/${selectedSkill}/rename`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
+        body: JSON.stringify({ name: editedName.trim() })
+      });
+      if (res.ok) { setIsEditingName(false); fetchSkills(userId); }
+    } catch (err) { console.error("Rename error"); }
+  };
 
-  const handleRename = async () => {
-    if (!editedName.trim()) return;
-    try {
-      const res = await fetch(`${API_URL}/skills/${selectedSkill}/rename`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
-        body: JSON.stringify({ name: editedName.trim() })
-      });
-      if (res.ok) { setIsEditingName(false); fetchSkills(userId); }
-    } catch (err) { console.error("Rename error"); }
-  };
+  useEffect(() => {
+    if (skills && Object.keys(skills).length > 0) {
+      setOffsets({}); // <-- скидаємо offsets
+    }
+  }, [skills, setOffsets]);
 
   return (
     <div style={{
