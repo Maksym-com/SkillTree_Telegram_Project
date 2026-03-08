@@ -88,139 +88,103 @@ const SkillTree = ({
       <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
         <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
-          {/* SVG BRANCHES */}
-          <svg
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 1
-            }}
-          >
-            <defs>
-              <linearGradient id="trunkGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={accentColor} stopOpacity="0.4" />
-                <stop offset="100%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
-
-            <rect
-              x="998"
-              y={isAbyss ? 0 : 1750}
-              width="4"
-              height="250"
-              fill="url(#trunkGrad)"
-            />
-
-            {Object.entries(treeData).map(([id, data]) => {
-              const parent = treeData[data.parentId];
-              if (!parent) return null;
-
-              const offset = offsets[id] || { x: 0, y: 0 };
-              const parentOffset = offsets[data.parentId] || { x: 0, y: 0 };
-
-              const x1 = parent.basePos.x + parentOffset.x;
-              const y1 = parent.basePos.y + parentOffset.y;
-              const x2 = data.basePos.x + offset.x;
-              const y2 = data.basePos.y + offset.y;
-
-              const dx = x2 - x1;
-              const dy = y2 - y1;
-              const curveStrength = 0.25 + data.depth * 0.05;
-              const cx = x1 + dx / 2 - dy * curveStrength;
-              const cy = y1 + dy / 2 + dx * curveStrength;
-
-              return (
-                <motion.path
-                  key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
-                  stroke={data.level > 0 ? accentColor : inactiveColor}
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
+          <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
+              <defs>
+                <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                <stop 
+                    offset="100%" 
+                    stopColor={theme === 'dark' ? '#020617' : '#f8fafc'} 
+                    stopOpacity="0" 
                 />
-              );
+                </linearGradient>
+              </defs>
+              <rect x="998" y="1750" width="4" height="300" fill="url(#trunkGradient)" />
+            {treeData && Object.entries(treeData).map(([id, data]) => {
+            const parent = treeData[data.parent];
+            if (!parent) return null;
+            return (
+                <path key={`line-${id}`}
+                d={`M ${parent.pos.x} ${parent.pos.y} Q ${(parent.pos.x + data.pos.x) / 2} ${(parent.pos.y + data.pos.y) / 2 - 20} ${data.pos.x} ${data.pos.y}`}
+                /* Динамічний колір ліній: синій для активних, сірий для неактивних */
+                stroke={data.level > 0 ? "#119484" : (theme === 'dark' ? "#1e293b" : "#cbd5e1")} 
+                strokeWidth={Math.max(2, 10 - data.depth * 2)} 
+                fill="none" 
+                style={{ opacity: 0.5, transition: 'all 0.1s' }}
+                />
+            );
             })}
           </svg>
 
-          {/* SKILL NODES */}
-          {Object.entries(treeData).map(([id, data]) => {
-            const offset = offsets[id] || { x: 0, y: 0 };
-            const x = data.basePos.x + offset.x;
-            const y = data.basePos.y + offset.y;
-            const isRoot = !data.parentId;
-
-            return (
-              <div
-                key={id}
-                style={{
-                  position: 'absolute',
-                  left: x,
-                  top: y,
-                  zIndex: draggingId === id ? 100 : 10,
-                }}
-              >
+            {treeData && Object.entries(treeData).map(([id, data]) => (
+              <div key={`node-${id}`} style={{ position: 'absolute', left: data.pos.x, top: data.pos.y, transform: 'translate(-50%, -50%)', zIndex: draggingId === id ? 100 : 5 }}>
                 <motion.div
-                  drag={!isRoot}
-                  dragMomentum={false}
-                  onDragStart={() => setDraggingId(id)}
-                  onDragEnd={() => setDraggingId(null)}
-                  onDrag={(e, info) => {
-                    setOffsets(prev => ({
-                      ...prev,
-                      [id]: {
-                        x: (prev[id]?.x || 0) + info.delta.x,
-                        y: (prev[id]?.y || 0) + info.delta.y
-                      }
-                    }));
-                  }}
-                  onTap={() => {
-                    setSelectedSkill(id);
-                    setPopupMode('menu');
-                    setShowPopup(true);
-                  }}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    x: "-50%", 
-                    y: "-50%",
-                    position: "absolute",
-                    cursor: isRoot ? 'default' : (draggingId === id ? 'grabbing' : 'grab')
-                  }}
+                drag
+                dragElastic={0}
+                dragMomentum={false}
+                onTap={() => {
+                  setSelectedSkill(id);
+                  setPopupMode('menu');
+                  setShowPopup(true);
+                }}
+                style={{
+                  x: offsets[id]?.x || 0,
+                  y: offsets[id]?.y || 0
+                }}
+                onDragStart={() => setDraggingId(id)}
+                onDrag={(e, info) => {
+                  setOffsets(prev => ({
+                    ...prev,
+                    [id]: {
+                      x: info.offset.x,
+                      y: info.offset.y
+                    }
+                  }));
+                }}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                }}
+                whileDrag={{ scale: 1.2 }}
+                animate={{ scale: draggingId === id ? 1.2 : 1 }}
                 >
-                  <div style={{
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    transform: 'rotate(45deg)',
-                    background: data.level > 0 ? accentColor : inactiveColor,
-                    border: `2px solid ${data.level > 0 ? accentColor : 'rgba(255,255,255,0.1)'}`,
-                    boxShadow: data.level > 0 ? `0 0 15px ${accentColor}66` : 'none',
-                    transition: 'background 0.3s ease'
-                  }} />
-                  
-                  <div style={{
-                    marginTop: '12px',
-                    textAlign: 'center',
-                    color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
-                    textTransform: 'uppercase'
-                  }}>
-                    {data.name}
-                    <div style={{ fontSize: '9px', opacity: 0.6 }}>
-                      {Math.floor(data.level)}%
-                    </div>
-                  </div>
-                </motion.div>
+                <div style={{
+                  width: data.depth === 0 ? '36px' : '24px',
+                  height: data.depth === 0 ? '36px' : '24px',
+                  background: draggingId === id 
+                    ? '#f59e0b' 
+                    : (data.level >= 100 
+                      ? '#5ad3c5' 
+                      : data.level > 0 
+                        ? '#45da8f' 
+                        /* Колір неактивного ромба залежить від теми */
+                        : (theme === 'dark' ? '#1e293b' : '#cbd5e1')),
+                  transform: 'rotate(45deg)',
+                  border: theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                  boxShadow: data.level > 0 
+                    ? `0 0 15px rgba(16, 211, 169, 0.5)` 
+                    : 'none',
+                  cursor: 'grab'
+                }} />
+
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginTop: '12px',
+                  /* Колір тексту назви навички */
+                  color: theme === 'dark' ? '#fff' : '#0f172a',
+                  fontSize: '10px',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  pointerEvents: 'none'
+                }}>
+                  <div style={{ fontWeight: 'bold' }}>{data.name}</div>
+                  <div style={{ color: '#2cc3a0' }}>{Math.floor(data.level)}%</div>
+                </div>
+              </motion.div>
               </div>
-            );
-          })}
+            ))}
         </div>
       </TransformComponent>
     </TransformWrapper>
