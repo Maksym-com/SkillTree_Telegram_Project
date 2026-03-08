@@ -134,83 +134,61 @@ const SkillTree = ({
           </svg>
 
           {/* ВУЗЛИ (РОМБИ) */}
-          {Object.entries(treeData).map(([id, data]) => (
-            <div 
-              key={`node-${id}`} 
-              style={{ 
-                position: 'absolute', 
-                left: data.pos.x, 
-                top: data.pos.y, 
-                transform: 'translate(-50%, -50%)', 
-                zIndex: draggingId === id ? 100 : 5 
-              }}
-            >
-              <motion.div
-                drag
-                dragElastic={0}
-                dragMomentum={false}
-                onTap={() => {
-                  setSelectedSkill(id);
-                  setPopupMode('menu');
-                  setShowPopup(true);
-                }}
-                style={{
-                  x: 0,
-                  y: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  cursor: draggingId === id ? 'grabbing' : 'grab'
-                }}
-                onDragStart={() => setDraggingId(id)}
-                onDrag={(e, info) => {
-                  setOffsets(prev => ({
-                    ...prev,
-                    [id]: {
-                      x: (prev[id]?.x || 0) + info.delta.x,
-                      y: (prev[id]?.y || 0) + info.delta.y
-                    }
-                  }));
-                }}
-                onDragEnd={() => setDraggingId(null)}
-                whileDrag={{ scale: 1.2 }}
-                animate={{ scale: draggingId === id ? 1.2 : 1 }}
-              >
-                <div style={{
-                  width: data.depth === 0 ? '36px' : '24px',
-                  height: data.depth === 0 ? '36px' : '24px',
-                  background: draggingId === id 
-                    ? '#f59e0b' 
-                    : (data.level >= 100 
-                        ? (isAbyss ? '#ff0000' : '#5ad3c5') 
-                        : data.level > 0 
-                          ? (isAbyss ? '#900' : '#45da8f') 
-                          : (isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1'))
-                      ),
-                  transform: 'rotate(45deg)',
-                  border: isAbyss 
-                    ? '1px solid #600' 
-                    : (theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'),
-                  boxShadow: data.level > 0 
-                    ? `0 0 15px ${isAbyss ? 'rgba(255, 0, 0, 0.5)' : 'rgba(16, 211, 169, 0.5)'}` 
-                    : 'none',
-                }} />
+          {Object.entries(treeData).map(([id, data]) => {
+            const { x, y } = getPos(id);      // <–– зсув беремо тут
 
-                <div style={{
-                  marginTop: '12px',
-                  color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
-                  fontSize: '10px',
-                  whiteSpace: 'nowrap',
-                  textAlign: 'center',
-                  pointerEvents: 'none',
-                  textShadow: isAbyss ? '0 0 5px #000' : 'none'
-                }}>
-                  <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                  <div style={{ color: isAbyss ? '#ff0000' : '#2cc3a0' }}>{Math.floor(data.level)}%</div>
-                </div>
-              </motion.div>
-            </div>
-          ))}
+            return (
+              <div
+                key={`node-${id}`}
+                style={{
+                  position: 'absolute',
+                  left: x,
+                  top: y,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: draggingId === id ? 100 : 5
+                }}
+              >
+                <motion.div
+                  drag
+                  dragElastic={0}
+                  dragMomentum={false}
+                  onTap={() => {
+                    setSelectedSkill(id);
+                    setPopupMode('menu');
+                    setShowPopup(true);
+                  }}
+                  style={{
+                    // тут можна залишити x:0 y:0 – зміщення
+                    // застосовується в <div> через getPos;
+                    // або, як альтернатива, вказати offsets[id] прямо,
+                    // але в будь‑якому разі вони не повинні дублюватись
+                    // в обох місцях із різними джерелами.
+                    x: 0,
+                    y: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: draggingId === id ? 'grabbing' : 'grab'
+                  }}
+                  onDragStart={() => setDraggingId(id)}
+                  onDrag={(e, info) => {
+                    setOffsets(prev => ({
+                      ...prev,
+                      [id]: {
+                        x: (prev[id]?.x || 0) + info.delta.x,
+                        y: (prev[id]?.y || 0) + info.delta.y
+                      }
+                    }));
+                  }}
+                  onDragEnd={() => setDraggingId(null)}
+                  whileDrag={{ scale: 1.2 }}
+                  animate={{ scale: draggingId === id ? 1.2 : 1 }}
+                >
+                  {/* …вміст ромба… */}
+                </motion.div>
+              </div>
+            );
+          })}
 
         </div>
       </TransformComponent>
