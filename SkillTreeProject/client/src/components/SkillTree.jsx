@@ -10,60 +10,57 @@ const SkillTree = ({
   setPopupMode
 }) => {
 
-  const treeData = useMemo(() => {
-    if (!skills || typeof skills !== 'object' || Object.keys(skills).length === 0) return {};
+const treeData = useMemo(() => {
+  if (!skills || typeof skills !== 'object' || Object.keys(skills).length === 0) return {};
 
-    const result = {};
-    const centerX = 1000;
-    const isLight = world === 'light';
-    const startY = isLight ? 1750 : 250;
-    const baseLength = 220;
-    const baseSpread = 140;
+  const result = {};
+  const centerX = 1000;
+  const startY = world === 'light' ? 1750 : 250;
+  const baseLength = 220; // початкова довжина гілки
+  const spreadAngle = 60; // максимальний розкид дітей в градусах
 
-    const build = (id, x, y, parentAngle, depth = 0) => {
-      const skill = skills[id];
-      if (!skill) return;
+  const build = (id, x, y, parentAngle = -90, depth = 0) => {
+    const skill = skills[id];
+    if (!skill) return;
 
-      const childrenIds = Object.keys(skills).filter(key => 
-        skills[key].parent === id || skills[key].parent_id === id
-      );
-
-      result[id] = {
-        ...skill,
-        id,
-        parent: skill.parent || skill.parent_id, 
-        pos: { x, y },
-        depth
-      };
-
-      if (childrenIds.length === 0) return;
-
-      const currentSpread = baseSpread / (depth + 1);
-      const startAngle = parentAngle - currentSpread / 2;
-      const angleStep = childrenIds.length > 1 ? currentSpread / (childrenIds.length - 1) : 0;
-
-      childrenIds.forEach((childId, index) => {
-        const currentAngle = childrenIds.length === 1 ? parentAngle : startAngle + angleStep * index;
-        const rad = (currentAngle * Math.PI) / 180;
-        const length = baseLength * Math.pow(0.82, depth);
-
-        const childX = x + Math.cos(rad) * length;
-        const childY = y + Math.sin(rad) * length;
-
-        build(childId, childX, childY, currentAngle, depth + 1);
-      });
-    };
-
-    const rootId = Object.keys(skills).find(id => 
-      skills[id].parent === null || 
-      skills[id].parent_id === null || 
-      (!skills[id].parent && !skills[id].parent_id)
+    const childrenIds = Object.keys(skills).filter(
+      key => skills[key].parent === id || skills[key].parent_id === id
     );
 
-    if (rootId) build(rootId, centerX, startY, isLight ? -90 : 90);
+    result[id] = {
+      ...skill,
+      id,
+      parent: skill.parent || skill.parent_id,
+      pos: { x, y },
+      depth
+    };
 
-    return result;
-  }, [skills, world]);
+    if (childrenIds.length === 0) return;
+
+    const angleStep = childrenIds.length > 1 ? spreadAngle / (childrenIds.length - 1) : 0;
+    const startAngle = parentAngle - spreadAngle / 2;
+
+    childrenIds.forEach((childId, index) => {
+      const currentAngle = childrenIds.length === 1 ? parentAngle : startAngle + angleStep * index;
+      const rad = (currentAngle * Math.PI) / 180;
+      const length = baseLength * Math.pow(0.8, depth); // коротші гілки з глибиною
+
+      const childX = x + Math.cos(rad) * length;
+      const childY = y + Math.sin(rad) * length;
+
+      build(childId, childX, childY, currentAngle, depth + 1);
+    });
+  };
+
+  const rootId = Object.keys(skills).find(
+    id => !skills[id].parent && !skills[id].parent_id
+  );
+
+  if (rootId) build(rootId, centerX, startY);
+
+  return result;
+}, [skills, world]);
+
 
   if (!skills || Object.keys(treeData).length === 0) return null;
 
@@ -74,7 +71,7 @@ const SkillTree = ({
       minScale={0.2}
       limitToBounds={false}
     >
-      <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
+      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
         <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
           {/* Лінії */}
