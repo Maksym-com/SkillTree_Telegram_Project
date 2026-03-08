@@ -136,24 +136,6 @@ const SkillTree = ({
     return { x, y };
   };
 
-  const bounds = useMemo(() => {
-    if (Object.keys(treeData).length === 0) return { minX: 0, maxX: 100, minY: 0, maxY: 100 };
-    
-    const positions = Object.values(treeData).map(d => d.pos);
-    const xs = positions.map(p => p.x);
-    const ys = positions.map(p => p.y);
-    
-    return {
-      minX: Math.min(...xs) - 100,
-      maxX: Math.max(...xs) + 100,
-      minY: Math.min(...ys) - 100,
-      maxY: Math.max(...ys) + 100
-    };
-  }, [treeData]);
-
-  const width = bounds.maxX - bounds.minX;
-  const height = bounds.maxY - bounds.minY;
-
   if (!skills || Object.keys(treeData).length === 0) {
     console.log('No skills or treeData empty');
     return null;
@@ -168,7 +150,7 @@ const SkillTree = ({
       panning={{ disabled: draggingId !== null }}
     >
       <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
-        <div style={{ width: `${width}px`, height: `${height}px`, position: "relative", userSelect: 'none', overflow: 'visible' }}>  {/* Розширено для уникнення обрізання */}
+        <div style={{ width: "4000px", height: "4000px", position: "relative", userSelect: 'none', overflow: 'visible' }}>  {/* Розширено для уникнення обрізання */}
           
           <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
             <defs>
@@ -185,25 +167,18 @@ const SkillTree = ({
 
               const parentOffset = offsets[data.parent] || { x: 0, y: 0 };
               const childOffset = offsets[id] || { x: 0, y: 0 };
-              
-              // Беремо базові позиції
-              const baseParentX = treeData[data.parent].pos.x;
-              const baseParentY = treeData[data.parent].pos.y;
-              const baseChildX = treeData[id].pos.x;
-              const baseChildY = treeData[id].pos.y;
-              
-              // Додаємо офсети
-              const x1 = baseParentX + parentOffset.x;
-              const y1 = baseParentY + parentOffset.y;
-              const x2 = baseChildX + childOffset.x;
-              const y2 = baseChildY + childOffset.y;
-              
+              const { x: x1, y: y1 } = getBasePos(data.parent);
+              const { x: x2, y: y2 } = getBasePos(id);
+              const x1Adjusted = x1 + parentOffset.x;
+              const y1Adjusted = y1 + parentOffset.y;
+              const x2Adjusted = x2 + childOffset.x;
+              const y2Adjusted = y2 + childOffset.y;
               const curveOffset = isAbyss ? 40 : -40;
 
               return (
                 <path 
                   key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${(x1 + x2) / 2} ${(y1 + y2) / 2 + curveOffset} ${x2} ${y2}`}
+                  d={`M ${x1Adjusted} ${y1Adjusted} Q ${(x1Adjusted + x2Adjusted) / 2} ${(y1Adjusted + y2Adjusted) / 2 + curveOffset} ${x2Adjusted} ${y2Adjusted}`}
                   stroke={data.level > 0 ? (isAbyss ? "#ff4d4d" : "#119484") : (isAbyss ? "#300" : (theme === 'dark' ? "#1e293b" : "#cbd5e1"))}
                   strokeWidth={Math.max(2, 8 - data.depth * 1.5)}
                   fill="none"
