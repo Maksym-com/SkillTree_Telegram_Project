@@ -107,12 +107,14 @@ const SkillTree = ({
               const y2 = data.pos.y + (offsets[id]?.y || 0);
 
               // Викривлення: в Abyss воно дзеркальне
-              const curveOffset = isAbyss ? 20 : -20;
+              const curveOffset = isAbyss ? -40 : 40;
+              const midX = (x1 + x2) / 2;
+              const midY = (y1 + y2) / 2 + curveOffset;
 
               return (
                 <path 
                   key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${(x1 + x2) / 2} ${(y1 + y2) / 2 + curveOffset} ${x2} ${y2}`}
+                  d={`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`}
                   stroke={data.level > 0 
                     ? (isAbyss ? "#ff4d4d" : "#119484") 
                     : (isAbyss ? "#300" : (theme === 'dark' ? "#1e293b" : "#cbd5e1"))
