@@ -101,8 +101,9 @@ const SkillTree = ({
               if (!parent) return null;
 
               // Враховуємо офсети для ліній, щоб вони тягнулися за ромбами
-              const x1 = parent.pos.x + (offsets[data.parent]?.x || 0);
-              const y1 = parent.pos.y + (offsets[data.parent]?.y || 0);
+              const x1 = parent.pos.x + (offsets[parent.id]?.x || 0);
+              const y1 = parent.pos.y + (offsets[parent.id]?.y || 0);
+
               const x2 = data.pos.x + (offsets[id]?.x || 0);
               const y2 = data.pos.y + (offsets[id]?.y || 0);
 
@@ -123,8 +124,8 @@ const SkillTree = ({
                 key={`node-${id}`} 
                 style={{ 
                   position: 'absolute', 
-                  left: data.pos.x, 
-                  top: data.pos.y, 
+                  left: data.pos.x + (offsets[id]?.x || 0),
+                  top: data.pos.y + (offsets[id]?.y || 0),
                   transform: 'translate(-50%, -50%)', 
                   zIndex: draggingId === id ? 100 : 5 
                 }}
