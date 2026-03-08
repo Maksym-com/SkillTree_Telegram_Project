@@ -71,6 +71,15 @@ const SkillTree = ({
 
   const isAbyss = world === 'abyss';
 
+  const getPos = id => {
+    const d = treeData[id];
+    if (!d) return { x: 0, y: 0 };
+    return {
+      x: d.pos.x + (offsets[id]?.x || 0),
+      y: d.pos.y + (offsets[id]?.y || 0),
+    };
+  };
+
   if (!skills || Object.keys(treeData).length === 0) return null;
 
   return (
@@ -100,11 +109,8 @@ const SkillTree = ({
               const parent = treeData[data.parent];
               if (!parent) return null;
 
-              // Динамічні координати з урахуванням перетягування (offsets)
-              const x1 = parent.pos.x + (offsets[data.parent]?.x || 0);
-              const y1 = parent.pos.y + (offsets[data.parent]?.y || 0);
-              const x2 = data.pos.x + (offsets[id]?.x || 0);
-              const y2 = data.pos.y + (offsets[id]?.y || 0);
+              const { x: x1, y: y1 } = getPos(data.parent);
+              const { x: x2, y: y2 } = getPos(id);
 
               // Викривлення: в Abyss воно дзеркальне
               const curveOffset = isAbyss ? -40 : 40;
@@ -149,8 +155,8 @@ const SkillTree = ({
                   setShowPopup(true);
                 }}
                 style={{
-                  x: offsets[id]?.x || 0,
-                  y: offsets[id]?.y || 0,
+                  x: 0,
+                  y: 0,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
