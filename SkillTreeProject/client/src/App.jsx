@@ -146,7 +146,7 @@ function App() {
 
   const handleDelete = async (id) => {
     if (id.includes('root_')) return; 
-    if (window.confirm("Видалити цю гілку?")) {
+    if (window.confirm("Delete this branch?")) {
       try {
         await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
         setShowPopup(false); fetchSkills(userId);
@@ -167,7 +167,7 @@ function App() {
   };
 
   const handleResetTree = async () => {
-    if (window.confirm(`Ви впевнені? Це видалить усі навички світу ${world.toUpperCase()}!`)) {
+    if (window.confirm(`Are you sure? This will reset all skills in the ${world.toUpperCase()} world!`)) {
       try {
         const res = await fetch(`${API_URL}/user/${userId}/reset?world=${world}`, { 
           method: 'DELETE',
@@ -205,17 +205,17 @@ function App() {
                       <h2 onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }} style={{ cursor: 'pointer', margin: 0, fontSize: '18px' }}>{skills[selectedSkill]?.name} ✎</h2>
                     )}
                   </div>
-                  <p style={{ textAlign: 'center', color: colors.textMuted, fontSize: '14px', marginBottom: '20px' }}>Прогрес: {Math.floor(skills[selectedSkill]?.level)}%</p>
-                  <button onClick={() => trainSkill(selectedSkill)} style={menuButtonStyle(world === 'abyss' ? "#ff4d4d" : "#3b82f6")}>{world === 'abyss' ? '🩸 ТРЕНУВАТИ В БЕЗОДНІ' : '⚡️ ТРЕНУВАТИ'}</button>
-                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ДОДАТИ ГІЛКУ</button>
-                  {!selectedSkill?.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 ВИДАЛИТИ</button>}
+                  <p style={{ textAlign: 'center', color: colors.textMuted, fontSize: '14px', marginBottom: '20px' }}>Progress: {Math.floor(skills[selectedSkill]?.level)}%</p>
+                  <button onClick={() => trainSkill(selectedSkill)} style={menuButtonStyle(world === 'abyss' ? "#ff4d4d" : "#3b82f6")}>{world === 'abyss' ? '🩸 TRAIN IN THE ABYSS' : '⚡️ TRAIN'}</button>
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD BRANCH</button>
+                  {!selectedSkill?.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 DELETE</button>}
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                   <input autoFocus placeholder="Назва навички..." value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '10px', borderRadius: '10px', outline: 'none' }} />
+                   <input autoFocus placeholder="Skill name..." value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '10px', borderRadius: '10px', outline: 'none' }} />
                    <div style={{ display: 'flex', gap: '10px' }}>
-                     <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'transparent', color: colors.text, border: `1px solid ${colors.border}` }}>НАЗАД</button>
-                     <button onClick={handleAddSkill} style={{ flex: 2, background: '#3b82f6', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 'bold' }}>СТВОРИТИ</button>
+                     <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'transparent', color: colors.text, border: `1px solid ${colors.border}` }}>BACK</button>
+                     <button onClick={handleAddSkill} style={{ flex: 2, background: '#3b82f6', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 'bold' }}>CREATE</button>
                    </div>
                 </div>
               )}
@@ -235,12 +235,12 @@ function App() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button style={menuButtonStyle(colors.text)} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                   {theme === 'dark' ? '☀️ СВІТЛА ТЕМА' : '🌙 ТЕМНА ТЕМА'}
+                   {theme === 'dark' ? '☀️ LIGHT THEME' : '🌙 DARK THEME'}
                 </button>
                 <button style={menuButtonStyle("#ef4444")} onClick={handleResetTree}>
-                  ⚠️ СКИНУТИ ДЕРЕВО ({world.toUpperCase()})
+                  ⚠️ RESET TREE ({world.toUpperCase()})
                 </button>
-                <button onClick={() => setShowProfilePopup(false)} style={{ marginTop: '10px', color: colors.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>ЗАКРИТИ</button>
+                <button onClick={() => setShowProfilePopup(false)} style={{ marginTop: '10px', color: colors.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>CLOSE</button>
               </div>
             </motion.div>
           </motion.div>
@@ -250,7 +250,7 @@ function App() {
       {/* WORLD SWITCHER */}
       <div style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
         <button onClick={() => setWorld(world === 'light' ? 'abyss' : 'light')} style={{ background: world === 'light' ? '#000' : '#fff', color: world === 'light' ? '#ff4d4d' : '#3b82f6', border: `1px solid ${world === 'light' ? '#ff4d4d' : '#3b82f6'}`, padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', cursor: 'pointer', transition: 'all 0.3s' }}>
-          {world === 'light' ? 'ПЕРЕЙТИ В БЕЗОДНЮ' : 'ПОВЕРНУТИСЬ ДО СВІТЛА'}
+          {world === 'light' ? 'SCEND INTO THE ABYSS' : 'RETURN TO THE LIGHT'}
         </button>
       </div>
     </div>
