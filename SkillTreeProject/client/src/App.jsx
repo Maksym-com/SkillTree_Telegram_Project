@@ -52,10 +52,6 @@ function App() {
   const [theme, setTheme] = useState('dark');
   const [world, setWorld] = useState('light');
   
-  const [draggingId, setDraggingId] = useState(null);
-  const [offsets, setOffsets] = useState({});
-
-  const inputRef = useRef(null);
   const colors = useMemo(() => {
     if (world === 'abyss') return themes.abyss;
     return themes[theme];
@@ -118,7 +114,6 @@ function App() {
     initApp();
   }, [fetchSkills]);
 
-  // --- ACTIONS ---
   const trainSkill = async (id) => {
     try {
       await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
@@ -129,17 +124,14 @@ function App() {
   const handleAddSkill = async () => {
     if (!newSkillName.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    
-    // Нова логіка ID для унікальності
     const newId = `skill_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const payload = { 
       id: newId, 
       name: newSkillName.trim(), 
       parent_id: selectedSkill, 
       user_id: Number(userId),
-      world: world // Додаємо світ
+      world: world 
     };
-
     try {
       const res = await fetch(`${API_URL}/skills/add`, {
         method: 'POST',
@@ -147,40 +139,18 @@ function App() {
         body: JSON.stringify(payload)
       });
       if (res.ok) { 
-        setNewSkillName(''); 
-        setPopupMode('menu'); 
-        setShowPopup(false); 
-        fetchSkills(userId); 
+        setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId); 
       }
-    } catch (err) { 
-      console.error("Add error"); 
-    } finally { 
-      setIsSubmitting(false); 
-    }
+    } catch (err) { console.error("Add error"); } finally { setIsSubmitting(false); }
   };
 
   const handleDelete = async (id) => {
-    if (id.includes('root_')) return; // Нова перевірка для обох коренів
-    if (window.confirm("Delete this branch?")) {
+    if (id.includes('root_')) return; 
+    if (window.confirm("Видалити цю гілку?")) {
       try {
         await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
         setShowPopup(false); fetchSkills(userId);
       } catch (err) { console.error("Delete error"); }
-    }
-  };
-
-  const handleResetTree = async () => {
-    if (window.confirm("Ви впевнені? Це видалить усі навички цього світу!")) {
-      try {
-        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
-          method: 'DELETE',
-          headers: { "Bypass-Tunnel-Reminder": "true" }
-        });
-        if (res.ok) {
-          fetchSkills(userId);
-          setShowProfilePopup(false);
-        }
-      } catch (err) { console.error("Reset error:", err); }
     }
   };
 
@@ -196,134 +166,92 @@ function App() {
     } catch (err) { console.error("Rename error"); }
   };
 
+  const handleResetTree = async () => {
+    if (window.confirm(`Ви впевнені? Це видалить усі навички світу ${world.toUpperCase()}!`)) {
+      try {
+        const res = await fetch(`${API_URL}/user/${userId}/reset?world=${world}`, { 
+          method: 'DELETE',
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        if (res.ok) { fetchSkills(userId); setShowProfilePopup(false); }
+      } catch (err) { console.error("Reset error:", err); }
+    }
+  };
+
   return (
-    <div style={{
-      background: colors.bg,
-      transition: 'background 0.8s ease', // Повільніший перехід для атмосфери
-      width: '100vw', height: '100vh', position: 'fixed',
-      top: 0, left: 0, margin: 0, padding: 0, overflow: 'hidden', fontFamily: 'sans-serif'
-    }}>
-
-      {/* Анімація переходу між світами */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={world}
-          initial={{ opacity: 0, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, filter: 'blur(10px)' }}
-          transition={{ duration: 0.6 }}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <SkillTree 
-            skills={skills}
-            world={world}
-            theme={theme}
-            setSelectedSkill={setSelectedSkill}
-            setShowPopup={setShowPopup}
-            setPopupMode={setPopupMode}
-          />
-        </motion.div>
-      </AnimatePresence>
-
+    <div style={{ background: colors.bg, transition: 'background 0.5s ease', width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, margin: 0, padding: 0, overflow: 'hidden', fontFamily: 'sans-serif' }}>
+      
+      {/* HEADER / PROFILE TRIGGER */}
       <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-        <div
-          onClick={() => setShowProfilePopup(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            background: colors.card, padding: '8px 16px',
-            borderRadius: '25px', border: `1px solid ${colors.border}`,
-            backdropFilter: 'blur(10px)', cursor: 'pointer', pointerEvents: 'auto',
-            boxShadow: world === 'abyss' ? '0 0 15px rgba(255,0,0,0.2)' : 'none'
-          }}
-        >
-          {userAvatar ?
-            <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} alt="avatar" /> :
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: world === 'abyss' ? '#900' : '#3b82f6' }} />
-          }
-          <span style={{ color: colors.text, fontSize: '12px', fontWeight: 'bold' }}>
-            {firstName.toUpperCase() || 'USER'}
-          </span>
+        <div onClick={() => setShowProfilePopup(true)} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: colors.card, padding: '8px 16px', borderRadius: '25px', border: `1px solid ${colors.border}`, backdropFilter: 'blur(10px)', cursor: 'pointer', pointerEvents: 'auto' }}>
+          {userAvatar ? <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} alt="avatar" /> : <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: world === 'abyss' ? '#ff0000' : '#3b82f6' }} />}
+          <span style={{ color: colors.text, fontSize: '12px', fontWeight: 'bold' }}>{firstName.toUpperCase() || 'USER'}</span>
         </div>
       </header>
 
-      {/* Попапи (Повторюють логіку, але використовують colors.text/card) */}
+      <SkillTree skills={skills} world={world} theme={theme} setSelectedSkill={setSelectedSkill} setShowPopup={setShowPopup} setPopupMode={setPopupMode} />
+
       <AnimatePresence>
+        {/* SKILL POPUP */}
         {showPopup && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', zIndex: 10000, padding: '20px'
-            }}
-            onClick={() => { setShowPopup(false); setIsEditingName(false); }}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              style={{
-                background: colors.card, padding: '24px', borderRadius: '24px',
-                border: `1px solid ${colors.border}`, width: '100%', maxWidth: '300px',
-                color: colors.text
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => { setShowPopup(false); setIsEditingName(false); }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} style={{ background: colors.card, padding: '24px', borderRadius: '24px', border: `1px solid ${colors.border}`, width: '100%', maxWidth: '300px', color: colors.text }} onClick={(e) => e.stopPropagation()}>
               {popupMode === 'menu' ? (
                 <>
-                  <h2 style={{ textAlign: 'center', margin: '0 0 10px 0' }}>{skills[selectedSkill]?.name}</h2>
-                  <p style={{ textAlign: 'center', color: colors.textMuted }}>Progress: {Math.floor(skills[selectedSkill]?.level)}%</p>
-                  <button onClick={() => trainSkill(selectedSkill)} style={menuButtonStyle(world === 'abyss' ? "#ff4d4d" : "#3b82f6")}>
-                    {world === 'abyss' ? '🩸 SACRIFICE TO TRAIN' : '⚡️ TRAIN SKILL'}
-                  </button>
-                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD BRANCH</button>
-                  {!selectedSkill.includes('root_') && (
-                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 DELETE</button>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                    {isEditingName ? (
+                      <input autoFocus value={editedName} onChange={(e) => setEditedName(e.target.value)} onBlur={handleRename} onKeyDown={(e) => e.key === 'Enter' && handleRename()} style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: '5px', padding: '4px', textAlign: 'center', width: '80%' }} />
+                    ) : (
+                      <h2 onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }} style={{ cursor: 'pointer', margin: 0, fontSize: '18px' }}>{skills[selectedSkill]?.name} ✎</h2>
+                    )}
+                  </div>
+                  <p style={{ textAlign: 'center', color: colors.textMuted, fontSize: '14px', marginBottom: '20px' }}>Прогрес: {Math.floor(skills[selectedSkill]?.level)}%</p>
+                  <button onClick={() => trainSkill(selectedSkill)} style={menuButtonStyle(world === 'abyss' ? "#ff4d4d" : "#3b82f6")}>{world === 'abyss' ? '🩸 ТРЕНУВАТИ В БЕЗОДНІ' : '⚡️ ТРЕНУВАТИ'}</button>
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ДОДАТИ ГІЛКУ</button>
+                  {!selectedSkill?.startsWith('root_') && <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 ВИДАЛИТИ</button>}
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                   <input 
-                    autoFocus placeholder="Skill name..." value={newSkillName}
-                    onChange={(e) => setNewSkillName(e.target.value)}
-                    style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '10px', borderRadius: '10px' }}
-                   />
+                   <input autoFocus placeholder="Назва навички..." value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '10px', borderRadius: '10px', outline: 'none' }} />
                    <div style={{ display: 'flex', gap: '10px' }}>
-                     <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '10px', borderRadius: '10px' }}>BACK</button>
-                     <button onClick={handleAddSkill} style={{ flex: 2, background: '#3b82f6', color: 'white', borderRadius: '10px' }}>CREATE</button>
+                     <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'transparent', color: colors.text, border: `1px solid ${colors.border}` }}>НАЗАД</button>
+                     <button onClick={handleAddSkill} style={{ flex: 2, background: '#3b82f6', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 'bold' }}>СТВОРИТИ</button>
                    </div>
                 </div>
               )}
             </motion.div>
           </motion.div>
         )}
+
+        {/* PROFILE POPUP */}
+        {showProfilePopup && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }} onClick={() => setShowProfilePopup(false)}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} style={{ background: colors.card, padding: '30px', borderRadius: '32px', border: `1px solid ${colors.border}`, width: '100%', maxWidth: '320px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ marginBottom: '20px' }}>
+                {userAvatar ? <img src={userAvatar} style={{ width: '80px', height: '80px', borderRadius: '50%', border: `3px solid ${world === 'abyss' ? '#f00' : '#3b82f6'}` }} alt="avatar" /> : <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#3b82f6', margin: '0 auto' }} />}
+                <h2 style={{ color: colors.text, marginTop: '15px' }}>{firstName}</h2>
+                <p style={{ color: colors.textMuted, fontSize: '12px' }}>ID: {userId}</p>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button style={menuButtonStyle(colors.text)} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                   {theme === 'dark' ? '☀️ СВІТЛА ТЕМА' : '🌙 ТЕМНА ТЕМА'}
+                </button>
+                <button style={menuButtonStyle("#ef4444")} onClick={handleResetTree}>
+                  ⚠️ СКИНУТИ ДЕРЕВО ({world.toUpperCase()})
+                </button>
+                <button onClick={() => setShowProfilePopup(false)} style={{ marginTop: '10px', color: colors.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>ЗАКРИТИ</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      {/* Кнопки перемикання світів */}
+      {/* WORLD SWITCHER */}
       <div style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
-        {world === 'light' ? (
-          <motion.button
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setWorld('abyss')}
-            style={{
-              background: '#000', color: '#ff4d4d', border: '1px solid #ff4d4d',
-              padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold',
-              boxShadow: '0 0 15px rgba(255, 0, 0, 0.4)', cursor: 'pointer'
-            }}
-          >
-            DESCEND INTO THE ABYSS
-          </motion.button>
-        ) : (
-          <motion.button
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setWorld('light')}
-            style={{
-              background: '#fff', color: '#3b82f6', border: '1px solid #3b82f6',
-              padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold',
-              boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)', cursor: 'pointer'
-            }}
-          >
-            RISE TO THE LIGHT
-          </motion.button>
-        )}
+        <button onClick={() => setWorld(world === 'light' ? 'abyss' : 'light')} style={{ background: world === 'light' ? '#000' : '#fff', color: world === 'light' ? '#ff4d4d' : '#3b82f6', border: `1px solid ${world === 'light' ? '#ff4d4d' : '#3b82f6'}`, padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', cursor: 'pointer', transition: 'all 0.3s' }}>
+          {world === 'light' ? 'ПЕРЕЙТИ В БЕЗОДНЮ' : 'ПОВЕРНУТИСЬ ДО СВІТЛА'}
+        </button>
       </div>
     </div>
   );
