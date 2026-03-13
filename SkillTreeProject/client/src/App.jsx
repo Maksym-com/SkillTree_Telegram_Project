@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { initUser, getSkills } from './services/api';
 import SkillTree from './components/SkillTree';
 import './App.css';
@@ -27,39 +26,36 @@ const themes = {
     nodeInactive: '#cbd5e1'
   },
   abyss: {
-    bg: '#050000',           // Глибокий чорний з відтінком крові
-    card: '#1a0505',         // Темно-червоні картки
-    text: '#ff4d4d',         // Криваво-червоний текст
-    textMuted: '#661a1a',    // Тьмяний червоний
+    bg: '#050000',
+    card: '#1a0505',
+    text: '#ff4d4d',
+    textMuted: '#661a1a',
     border: 'rgba(255, 0, 0, 0.3)',
-    nodeInactive: '#1a0000', // Майже чорні неактивні вузли
-    accent: '#ff0000'        // Яскраво-червоний для ліній
+    nodeInactive: '#1a0000',
+    accent: '#ff0000'
   }
 };
 
-
 function App() {
-  const [userId, setUserId] = useState(null);
-  const [skills, setSkills] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMode, setPopupMode] = useState('menu');
-  const [selectedSkill, setSelectedSkill] = useState(null);
-  const [newSkillName, setNewSkillName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [userAvatar, setUserAvatar] = useState(null);
-  const [firstName, setFirstName] = useState('');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
-  const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [theme, setTheme] = useState('dark');
+  const [userId, setUserId] = useState(null);
+  const [skills, setSkills] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMode, setPopupMode] = useState('menu');
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userAvatar, setUserAvatar] = useState(null);
+  const [firstName, setFirstName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [theme, setTheme] = useState('dark');
   const [world, setWorld] = useState('light');
   
-  
-  // DRAG STATE
-  const [draggingId, setDraggingId] = useState(null);
-  const [offsets, setOffsets] = useState({});
+  const [draggingId, setDraggingId] = useState(null);
+  const [offsets, setOffsets] = useState({});
 
-  const inputRef = useRef(null);
+  const inputRef = useRef(null);
   const colors = useMemo(() => {
     if (world === 'abyss') return themes.abyss;
     return themes[theme];
@@ -71,7 +67,7 @@ function App() {
     width: '100%',
     padding: '12px',
     borderRadius: '12px',
-    background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+    background: theme === 'dark' || world === 'abyss' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
     color: color,
     border: `1px solid ${color}44`,
     fontSize: '13px',
@@ -85,356 +81,252 @@ function App() {
     transition: 'all 0.2s ease'
   });
 
-  const fetchSkills = useCallback(async (uid) => {
-    if (!uid) return;
-    try {
-      const res = await fetch(`${API_URL}/skills/${uid}`, {
-        headers: { "Bypass-Tunnel-Reminder": "true" }
-      });
-      const data = await res.json();
-      setSkills(data);
-    } catch (err) { console.error("Fetch error:", err); }
-  }, []);
+  const fetchSkills = useCallback(async (uid) => {
+    if (!uid) return;
+    try {
+      const res = await fetch(`${API_URL}/skills/${uid}`, {
+        headers: { "Bypass-Tunnel-Reminder": "true" }
+      });
+      const data = await res.json();
+      setSkills(data);
+    } catch (err) { console.error("Fetch error:", err); }
+  }, []);
 
-  useEffect(() => {
-    const initApp = async () => {
-      let tgId = 12345678; 
-      let username = "LocalUser";
-      if (tg) {
-        tg.ready(); tg.expand();
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-          tgId = user.id;
-          username = user.username || user.first_name;
-          setFirstName(user.first_name || "User");
-          setUserAvatar(user.photo_url || null);
-        }
-      }
-      try {
-        const res = await fetch(`${API_URL}/user/init/${tgId}?username=${encodeURIComponent(username)}`, {
-          headers: { "Bypass-Tunnel-Reminder": "true" }
-        });
-        const userData = await res.json();
-        setUserId(userData.user_id);
-        fetchSkills(userData.user_id);
-      } catch (err) { console.error("Init error"); }
-    };
-    initApp();
-  }, [fetchSkills]);
+  useEffect(() => {
+    const initApp = async () => {
+      let tgId = 12345678; 
+      let username = "LocalUser";
+      if (tg) {
+        tg.ready(); tg.expand();
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+          tgId = user.id;
+          username = user.username || user.first_name;
+          setFirstName(user.first_name || "User");
+          setUserAvatar(user.photo_url || null);
+        }
+      }
+      try {
+        const res = await fetch(`${API_URL}/user/init/${tgId}?username=${encodeURIComponent(username)}`, {
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        const userData = await res.json();
+        setUserId(userData.user_id);
+        fetchSkills(userData.user_id);
+      } catch (err) { console.error("Init error"); }
+    };
+    initApp();
+  }, [fetchSkills]);
 
+  // --- ACTIONS ---
+  const trainSkill = async (id) => {
+    try {
+      await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
+      fetchSkills(userId);
+    } catch (err) { console.error("Train error"); }
+  };
 
-  // --- ACTIONS ---
-  const trainSkill = async (id) => {
-    try {
-      await fetch(`${API_URL}/train/${id}`, { method: 'POST', headers: { "Bypass-Tunnel-Reminder": "true" } });
-      fetchSkills(userId);
-    } catch (err) { console.error("Train error"); }
-  };
+  const handleAddSkill = async () => {
+    if (!newSkillName.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    
+    // Нова логіка ID для унікальності
+    const newId = `skill_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const payload = { 
+      id: newId, 
+      name: newSkillName.trim(), 
+      parent_id: selectedSkill, 
+      user_id: Number(userId),
+      world: world // Додаємо світ
+    };
 
-  const handleAddSkill = async () => {
-    if (!newSkillName.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    const newId = `skill_${Math.random().toString(36).substr(2, 9)}`;
-    const payload = { id: newId, name: newSkillName.trim(), parent_id: selectedSkill, user_id: Number(userId) };
-    try {
-      const res = await fetch(`${API_URL}/skills/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) { setNewSkillName(''); setPopupMode('menu'); setShowPopup(false); fetchSkills(userId); }
-    } catch (err) { console.error("Add error"); } finally { setIsSubmitting(false); }
-  };
+    try {
+      const res = await fetch(`${API_URL}/skills/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) { 
+        setNewSkillName(''); 
+        setPopupMode('menu'); 
+        setShowPopup(false); 
+        fetchSkills(userId); 
+      }
+    } catch (err) { 
+      console.error("Add error"); 
+    } finally { 
+      setIsSubmitting(false); 
+    }
+  };
 
-  const handleDelete = async (id) => {
-    if (id.startsWith('root_')) return;
-    if (window.confirm("Delete this branch?")) {
-      try {
-        await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
-        setShowPopup(false); fetchSkills(userId);
-      } catch (err) { console.error("Delete error"); }
-    }
-  };
+  const handleDelete = async (id) => {
+    if (id.includes('root_')) return; // Нова перевірка для обох коренів
+    if (window.confirm("Delete this branch?")) {
+      try {
+        await fetch(`${API_URL}/skills/${id}`, { method: 'DELETE', headers: { "Bypass-Tunnel-Reminder": "true" } });
+        setShowPopup(false); fetchSkills(userId);
+      } catch (err) { console.error("Delete error"); }
+    }
+  };
 
-  const handleResetTree = async () => {
-    if (window.confirm("Ви впевнені? Це видалить усі навички, крім головної!")) {
-      try {
-        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
-          method: 'DELETE',
-          headers: { "Bypass-Tunnel-Reminder": "true" }
-        });
-        if (res.ok) {
-          setOffsets({}); // Очищаємо локальні зсуви
-          fetchSkills(userId); // Перезавантажуємо дерево
-          setShowProfilePopup(false);
-        }
-      } catch (err) { console.error("Reset error:", err); }
-    }
-  };
+  const handleResetTree = async () => {
+    if (window.confirm("Ви впевнені? Це видалить усі навички цього світу!")) {
+      try {
+        const res = await fetch(`${API_URL}/user/${userId}/reset`, { 
+          method: 'DELETE',
+          headers: { "Bypass-Tunnel-Reminder": "true" }
+        });
+        if (res.ok) {
+          fetchSkills(userId);
+          setShowProfilePopup(false);
+        }
+      } catch (err) { console.error("Reset error:", err); }
+    }
+  };
 
-  const handleRename = async () => {
-    if (!editedName.trim()) return;
-    try {
-      const res = await fetch(`${API_URL}/skills/${selectedSkill}/rename`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
-        body: JSON.stringify({ name: editedName.trim() })
-      });
-      if (res.ok) { setIsEditingName(false); fetchSkills(userId); }
-    } catch (err) { console.error("Rename error"); }
-  };
+  const handleRename = async () => {
+    if (!editedName.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/skills/${selectedSkill}/rename`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', "Bypass-Tunnel-Reminder": "true" },
+        body: JSON.stringify({ name: editedName.trim() })
+      });
+      if (res.ok) { setIsEditingName(false); fetchSkills(userId); }
+    } catch (err) { console.error("Rename error"); }
+  };
 
   return (
     <div style={{
       background: colors.bg,
-      transition: 'background 0.3s ease',
-      width: '100vw',
-      height: '100vh',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      fontFamily: 'sans-serif'
+      transition: 'background 0.8s ease', // Повільніший перехід для атмосфери
+      width: '100vw', height: '100vh', position: 'fixed',
+      top: 0, left: 0, margin: 0, padding: 0, overflow: 'hidden', fontFamily: 'sans-serif'
     }}>
 
-      <header style={{
-        position: 'absolute', top: '20px', left: 0, width: '100%',
-        display: 'flex', justifyContent: 'center', zIndex: 10
-      }}>
+      {/* Анімація переходу між світами */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={world}
+          initial={{ opacity: 0, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, filter: 'blur(10px)' }}
+          transition={{ duration: 0.6 }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <SkillTree 
+            skills={skills}
+            world={world}
+            theme={theme}
+            setSelectedSkill={setSelectedSkill}
+            setShowPopup={setShowPopup}
+            setPopupMode={setPopupMode}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      <header style={{ position: 'absolute', top: '20px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
         <div
-          onClick={() => setShowProfilePopup(true)} // Відкриваємо профіль
+          onClick={() => setShowProfilePopup(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             background: colors.card, padding: '8px 16px',
             borderRadius: '25px', border: `1px solid ${colors.border}`,
             backdropFilter: 'blur(10px)', cursor: 'pointer', pointerEvents: 'auto',
-            boxShadow: theme === 'dark' ? 'none' : '0 4px 12px rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.3s ease'
+            boxShadow: world === 'abyss' ? '0 0 15px rgba(255,0,0,0.2)' : 'none'
           }}
         >
           {userAvatar ?
-            <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} /> :
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6' }} />
+            <img src={userAvatar} style={{ width: '24px', height: '24px', borderRadius: '50%' }} alt="avatar" /> :
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: world === 'abyss' ? '#900' : '#3b82f6' }} />
           }
-          <span style={{
-            /* Колір імені тепер змінюється: білий для темної теми, темно-синій для світлої */
-            color: theme === 'dark' ? '#fff' : '#0f172a',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            letterSpacing: '0.5px',
-            transition: 'color 0.3s ease'
-          }}>
+          <span style={{ color: colors.text, fontSize: '12px', fontWeight: 'bold' }}>
             {firstName.toUpperCase() || 'USER'}
           </span>
         </div>
       </header>
 
-    <SkillTree 
-      skills={skills}
-      offsets={offsets}
-      setOffsets={setOffsets}
-      world={world}
-      theme={theme}
-      setSelectedSkill={setSelectedSkill}
-      setShowPopup={setShowPopup}
-      setPopupMode={setPopupMode}
-      draggingId={draggingId}
-      setDraggingId={setDraggingId}
-    />
-
+      {/* Попапи (Повторюють логіку, але використовують colors.text/card) */}
       <AnimatePresence>
         {showPopup && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{
-              position: 'fixed', inset: 0,
-              background: theme === 'dark' ? 'rgba(2, 6, 23, 0.85)' : 'rgba(241, 245, 249, 0.85)',
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
               backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', zIndex: 10000, padding: '20px'
             }}
             onClick={() => { setShowPopup(false); setIsEditingName(false); }}
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               style={{
-                background: theme === 'dark' ? '#1e293b' : '#ffffff',
-                padding: '24px', borderRadius: '24px',
-                border: `1px solid ${theme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'}`,
-                width: '100%', maxWidth: '300px',
-                boxShadow: theme === 'dark' ? 'none' : '0 10px 25px -5px rgba(0, 0, 0, 0.1)'
+                background: colors.card, padding: '24px', borderRadius: '24px',
+                border: `1px solid ${colors.border}`, width: '100%', maxWidth: '300px',
+                color: colors.text
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {popupMode === 'menu' ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', minHeight: '32px', position: 'relative' }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      {isEditingName ? (
-                        <input
-                          autoFocus value={editedName}
-                          onChange={(e) => setEditedName(e.target.value)}
-                          onBlur={handleRename}
-                          onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                          style={{
-                            background: theme === 'dark' ? '#0f172a' : '#f1f5f9',
-                            color: theme === 'dark' ? '#fff' : '#0f172a',
-                            border: '1px solid #23bcab', borderRadius: '6px',
-                            padding: '2px 10px', textAlign: 'center', fontSize: '18px',
-                            fontWeight: 'bold', outline: 'none', width: `${Math.max(editedName.length, 5)}ch`,
-                            minWidth: '100px', maxWidth: '240px'
-                          }}
-                        />
-                      ) : (
-                        <>
-                          <h2 style={{ color: theme === 'dark' ? '#fff' : '#0f172a', fontSize: '18px', margin: 0, textAlign: 'center', fontWeight: 'bold' }}>{skills[selectedSkill]?.name}</h2>
-                          <button onClick={() => { setIsEditingName(true); setEditedName(skills[selectedSkill]?.name); }} style={{ position: 'absolute', left: '100%', marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignItems: 'center', padding: '4px' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? "#94a3b8" : "#64748b"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{ color: theme === 'dark' ? '#64748b' : '#475569', fontSize: '12px', textAlign: 'center', marginBottom: '20px' }}>Level: {Math.floor(skills[selectedSkill]?.level)}%</p>
-                  {skills[selectedSkill]?.level < 100 ? (
-                    <button onClick={() => { trainSkill(selectedSkill); setShowPopup(false); }} style={menuButtonStyle("#3b82f6")}>⚡️ TRAIN SKILL</button>
-                  ) : (
-                    <div style={{ width: '100%', height: '42px', marginBottom: '10px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981', background: theme === 'dark' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.1)', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
-                      <span>MASTERED</span>
-                    </div>
+                  <h2 style={{ textAlign: 'center', margin: '0 0 10px 0' }}>{skills[selectedSkill]?.name}</h2>
+                  <p style={{ textAlign: 'center', color: colors.textMuted }}>Progress: {Math.floor(skills[selectedSkill]?.level)}%</p>
+                  <button onClick={() => trainSkill(selectedSkill)} style={menuButtonStyle(world === 'abyss' ? "#ff4d4d" : "#3b82f6")}>
+                    {world === 'abyss' ? '🩸 SACRIFICE TO TRAIN' : '⚡️ TRAIN SKILL'}
+                  </button>
+                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD BRANCH</button>
+                  {!selectedSkill.includes('root_') && (
+                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 DELETE</button>
                   )}
-                  <button onClick={() => setPopupMode('create')} style={menuButtonStyle("#10b981")}>➕ ADD CHILD BRANCH</button>
-                  {!selectedSkill.startsWith('root_') && (
-                    <button onClick={() => handleDelete(selectedSkill)} style={menuButtonStyle("#ef4444")}>🗑 DELETE BRANCH</button>
-                  )}
-                  <button onClick={() => { setShowPopup(false); setIsEditingName(false); }} style={{ width: '100%', color: theme === 'dark' ? '#94a3b8' : '#64748b', background: 'none', border: 'none', marginTop: '15px', fontSize: '11px', cursor: 'pointer' }}>CANCEL</button>
                 </>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                  <h3 style={{ color: theme === 'dark' ? '#fff' : '#0f172a', fontSize: '14px', marginBottom: '16px', textAlign: 'center', fontWeight: '600', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    NEW SKILL UNDER: <span style={{ color: '#3b82f6' }}>{skills[selectedSkill]?.name}</span>
-                  </h3>
-                  <input
-                    ref={inputRef} autoFocus value={newSkillName}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                   <input 
+                    autoFocus placeholder="Skill name..." value={newSkillName}
                     onChange={(e) => setNewSkillName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
-                    placeholder="Enter skill name..."
-                    style={{
-                      width: '100%', maxWidth: '240px', padding: '10px 14px',
-                      borderRadius: '10px', background: theme === 'dark' ? '#0f172a' : '#f1f5f9',
-                      color: theme === 'dark' ? '#fff' : '#0f172a',
-                      border: `1px solid ${theme === 'dark' ? '#334155' : '#cbd5e1'}`,
-                      marginBottom: '20px', outline: 'none'
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '240px' }}>
-                    <button onClick={() => { setPopupMode('menu'); setNewSkillName(''); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: theme === 'dark' ? '#334155' : '#e2e8f0', color: theme === 'dark' ? '#fff' : '#475569', border: 'none', fontSize: '13px', fontWeight: '600' }}>BACK</button>
-                    <button onClick={handleAddSkill} disabled={isSubmitting || !newSkillName.trim()} style={{ flex: 1.5, padding: '10px', borderRadius: '10px', background: '#3b82f6', color: '#fff', border: 'none', fontSize: '13px', fontWeight: 'bold', opacity: (isSubmitting || !newSkillName.trim()) ? 0.4 : 1 }}>
-                      {isSubmitting ? '...' : 'CREATE'}
-                    </button>
-                  </div>
+                    style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, padding: '10px', borderRadius: '10px' }}
+                   />
+                   <div style={{ display: 'flex', gap: '10px' }}>
+                     <button onClick={() => setPopupMode('menu')} style={{ flex: 1, padding: '10px', borderRadius: '10px' }}>BACK</button>
+                     <button onClick={handleAddSkill} style={{ flex: 2, background: '#3b82f6', color: 'white', borderRadius: '10px' }}>CREATE</button>
+                   </div>
                 </div>
               )}
             </motion.div>
           </motion.div>
         )}
-
-        {showProfilePopup && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0,
-              background: theme === 'dark' ? 'rgba(2, 6, 23, 0.85)' : 'rgba(241, 245, 249, 0.85)',
-              backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', zIndex: 11000, padding: '20px'
-            }}
-            onClick={() => setShowProfilePopup(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }}
-              style={{
-                background: theme === 'dark' ? '#1e293b' : '#ffffff',
-                padding: '30px', borderRadius: '32px',
-                border: `1px solid ${theme === 'dark' ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.2)'}`,
-                width: '100%', maxWidth: '320px', textAlign: 'center',
-                boxShadow: theme === 'dark' ? 'none' : '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ marginBottom: '20px' }}>
-                {userAvatar ?
-                  <img src={userAvatar} style={{ width: '80px', height: '80px', borderRadius: '50%', border: '3px solid #3b82f6' }} /> :
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#3b82f6', margin: '0 auto' }} />
-                }
-                <h2 style={{ color: theme === 'dark' ? '#fff' : '#0f172a', marginTop: '15px', fontSize: '20px' }}>{firstName}</h2>
-                <p style={{ color: theme === 'dark' ? '#64748b' : '#64748b', fontSize: '12px' }}>ID: {userId}</p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button style={menuButtonStyle(theme === 'dark' ? "#94a3b8" : "#64748b")} onClick={() => alert("Language settings coming soon...")}>
-                  🌐 LANGUAGE: EN (Beta)
-                </button>
-
-                <button
-                  style={menuButtonStyle(theme === 'dark' ? "#fbbf24" : "#3b82f6")}
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                >
-                  {theme === 'dark' ? '☀️ LIGHT MODE' : '🌙 DARK MODE'}
-                </button>
-
-                <button
-                  style={menuButtonStyle("#ef4444")}
-                  onClick={handleResetTree}
-                >
-                  ⚠️ RESET TREE
-                </button>
-
-                <button
-                  onClick={() => setShowProfilePopup(false)}
-                  style={{ marginTop: '10px', color: theme === 'dark' ? '#64748b' : '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  CLOSE
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
       </AnimatePresence>
 
-      {/* Кнопка спуску (показуємо тільки в світлому світі) */}
-      {world === 'light' && (
-        <button
-          onClick={() => setWorld('abyss')}
-          style={{
-            position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)',
-            background: '#000', color: '#ff4d4d', border: '1px solid #ff4d4d',
-            padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', zIndex: 100,
-            cursor: 'pointer', boxShadow: '0 0 15px rgba(255, 0, 0, 0.4)'
-          }}
-        >
-          DESCEND INTO THE ABYSS
-        </button>
-      )}
-
-      {/* Кнопка підйому (показуємо тільки в безодні) */}
-      {world === 'abyss' && (
-        <button
-          onClick={() => setWorld('light')}
-          style={{
-            position: 'fixed', top: '80px', left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(255, 255, 255, 0.1)', color: '#3b82f6', border: '1px solid #3b82f6',
-            padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold', zIndex: 100,
-            cursor: 'pointer', backdropFilter: 'blur(5px)'
-          }}
-        >
-          RISE TO THE GREAT
-        </button>
-      )}
+      {/* Кнопки перемикання світів */}
+      <div style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+        {world === 'light' ? (
+          <motion.button
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setWorld('abyss')}
+            style={{
+              background: '#000', color: '#ff4d4d', border: '1px solid #ff4d4d',
+              padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold',
+              boxShadow: '0 0 15px rgba(255, 0, 0, 0.4)', cursor: 'pointer'
+            }}
+          >
+            DESCEND INTO THE ABYSS
+          </motion.button>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            onClick={() => setWorld('light')}
+            style={{
+              background: '#fff', color: '#3b82f6', border: '1px solid #3b82f6',
+              padding: '12px 24px', borderRadius: '30px', fontWeight: 'bold',
+              boxShadow: '0 0 15px rgba(59, 130, 246, 0.4)', cursor: 'pointer'
+            }}
+          >
+            RISE TO THE LIGHT
+          </motion.button>
+        )}
+      </div>
     </div>
   );
-
 }
 
 export default App;

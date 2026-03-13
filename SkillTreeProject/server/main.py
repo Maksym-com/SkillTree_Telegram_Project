@@ -2,15 +2,12 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict
 
 from database import SessionLocal, engine, Base
 from models import Skill, User
 
-
-# ОБЕРЕЖНО: це видалить усі дані!
-# Base.metadata.drop_all(bind=engine) 
-
+# Створення таблиць (якщо вони ще не створені)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -23,6 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Залежність для отримання сесії БД
 def get_db():
     db = SessionLocal()
     try:
@@ -30,45 +28,71 @@ def get_db():
     finally:
         db.close()
 
+# --- Pydantic Схеми ---
+
+class SkillCreate(BaseModel):
+    id: str
+    name: str
+    parent_id: str
+    user_id: int
+    world: str = "light"  # Можна передавати явно, або брати від батька
+
+class RenameRequest(BaseModel):
+    name: str
+
 # --- Ендпоінти Користувача ---
 
 @app.get("/")
 def home():
-    return {"status": "Skill Tree API is running", "docs": "/docs"}
-
+    return {"status": "Skill Tree API with Abyss Logic is running", "docs": "/docs"}
 
 @app.get("/user/init/{tg_id}")
 def init_user(tg_id: int, username: Optional[str] = None, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.telegram_id == tg_id).first()
+    
     if not user:
         user = User(telegram_id=tg_id, username=username)
         db.add(user)
         db.commit()
         db.refresh(user)
         
-        # Створюємо персональний Root
-        root_id = f"root_{tg_id}"
-        initial_skill = Skill(
-            id=root_id,
-            name="My Core",
-            level=100.0, # Корінь зазвичай прокачаний
-            parent_id=None,
-            pos_x=400,
-            pos_y=50,
-            user_id=user.id
-        )
-        db.add(initial_skill)
+        # Створюємо два незалежних кореня для двох світів
+        # Світло росте вгору (y=1750), Безодня вниз (y=250)
+        roots = [
+            {
+                "id": f"root_light_{tg_id}",
+                "name": "Core Light",
+                "world": "light",
+                "pos_x": 1000,
+                "pos_y": 1750
+            },
+            {
+                "id": f"root_abyss_{tg_id}",
+                "name": "Void Core",
+                "world": "abyss",
+                "pos_x": 1000,
+                "pos_y": 250
+            }
+        ]
+        
+        for r in roots:
+            initial_skill = Skill(
+                id=r["id"],
+                name=r["name"],
+                level=100.0,
+                parent_id=None,
+                world=r["world"],
+                pos_x=r["pos_x"],
+                pos_y=r["pos_y"],
+                user_id=user.id
+            )
+            db.add(initial_skill)
+        
         db.commit()
     
-    return {"user_id": user.id, "tg_id": user.telegram_id}
+    return {"user_id": user.id, "tg_id": user.telegram_id, "username": user.username}
 
 # --- Ендпоінти Навичок ---
-
-class SkillCreate(BaseModel):
-    id: str
-    name: str
-    parent_id: str
-    user_id: int # Обов'язково для прив'язки
 
 @app.post("/skills/add")
 def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
@@ -78,121 +102,108 @@ def add_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     # 2. Перевірка на дублікат ID
-    existing = db.query(Skill).filter(Skill.id == skill_data.id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Skill already exists")
+    if db.query(Skill).filter(Skill.id == skill_data.id).first():
+        raise HTTPException(status_code=400, detail="Skill ID already exists")
 
-    # 3. Пошук батька (тільки серед скілів цього юзера)
+    # 3. Пошук батька
     parent = db.query(Skill).filter(
         Skill.id == skill_data.parent_id, 
         Skill.user_id == skill_data.user_id
     ).first()
     
     if not parent:
-        new_x, new_y = 400, 150
-    else:
-        # Рахуємо дітей тільки цього батька
-        children_count = db.query(Skill).filter(Skill.parent_id == skill_data.parent_id).count()
-        
-        horizontal_step = 140
-        vertical_step = 120
-        offset_multiplier = (children_count + 1) // 2
-        direction = 1 if children_count % 2 != 0 else -1
-        
-        new_x = parent.pos_x if children_count == 0 else parent.pos_x + (direction * offset_multiplier * horizontal_step)
-        new_y = parent.pos_y + vertical_step
+        raise HTTPException(status_code=404, detail="Parent skill not found")
+
+    # 4. Розрахунок позиції (тільки для збереження в БД, фронтенд може ігнорувати)
+    children_count = db.query(Skill).filter(Skill.parent_id == skill_data.parent_id).count()
+    direction = 1 if children_count % 2 != 0 else -1
+    offset = ((children_count + 1) // 2) * 150
+    
+    # В Abyss дерево росте вниз (+y), у Light вгору (-y)
+    y_step = 150 if parent.world == "abyss" else -150
 
     new_skill = Skill(
         id=skill_data.id,
         name=skill_data.name,
         level=0.0,
-        pos_x=new_x,
-        pos_y=new_y,
-        parent_id=skill_data.parent_id if parent else None,
-        user_id=skill_data.user_id
+        world=parent.world,  # Успадковуємо світ від батька
+        parent_id=skill_data.parent_id,
+        user_id=skill_data.user_id,
+        pos_x=parent.pos_x + (direction * offset),
+        pos_y=parent.pos_y + y_step
     )
     
     db.add(new_skill)
     db.commit()
-    return {"status": "success", "id": new_skill.id}
+    db.refresh(new_skill)
+    return {"status": "success", "skill": {"id": new_skill.id, "world": new_skill.world}}
 
 @app.get("/skills/{user_id}")
 def get_user_skills(user_id: int, db: Session = Depends(get_db)):
     skills = db.query(Skill).filter(Skill.user_id == user_id).all()
-    if not skills:
-        return {} # Повертаємо порожній об'єкт, якщо юзер новий
+    
+    # Повертаємо об'єкт, де ключі - це ID скілів (зручно для фронтенда)
     return {
         s.id: {
             "name": s.name,
             "level": s.level,
-            "parent": s.parent_id,
+            "parent_id": s.parent_id,
+            "world": s.world,
             "pos": {"x": s.pos_x, "y": s.pos_y}
         } for s in skills
     }
 
-@app.delete("/skills/{skill_id}")
-def delete_skill(skill_id: str, db: Session = Depends(get_db)):
-    target_skill = db.query(Skill).filter(Skill.id == skill_id).first()
-    
-    if not target_skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
-
-    # Захист будь-якого кореневого вузла
-    if target_skill.id.startswith("root_"):
-         raise HTTPException(status_code=403, detail="Cannot delete your Core node")
-
-    # Видалення дітей
-    db.query(Skill).filter(Skill.parent_id == skill_id).delete(synchronize_session=False)
-    db.delete(target_skill)
-    db.commit()
-    
-    return {"status": "deleted", "id": skill_id}
-
 @app.post("/train/{skill_id}")
-async def train_skill(skill_id: str, db: Session = Depends(get_db)):
+def train_skill(skill_id: str, db: Session = Depends(get_db)):
     skill = db.query(Skill).filter(Skill.id == skill_id).first()
     if not skill:
-        return {"error": "Skill not found"}
+        raise HTTPException(status_code=404, detail="Skill not found")
     
-    # Якщо рівень вже 100 або більше, не додаємо досвід
     if skill.level >= 100:
-        return {"status": "already_maxed", "level": 100}
+        return {"status": "maxed", "level": 100.0}
 
-    # Твоя логіка додавання досвіду (наприклад, +5%)
+    # Додаємо 5% досвіду
     skill.level = min(100.0, skill.level + 5.0) 
-    
     db.commit()
     return {"status": "success", "level": skill.level}
 
-
 @app.put("/skills/{skill_id}/rename")
-async def rename_skill(skill_id: str, new_name: dict, db: Session = Depends(get_db)):
+def rename_skill(skill_id: str, request: RenameRequest, db: Session = Depends(get_db)):
     skill = db.query(Skill).filter(Skill.id == skill_id).first()
     if not skill:
-        return {"error": "Skill not found"}
+        raise HTTPException(status_code=404, detail="Skill not found")
     
-    skill.name = new_name.get("name")
+    skill.name = request.name
     db.commit()
     return {"status": "success", "new_name": skill.name}
 
+@app.delete("/skills/{skill_id}")
+def delete_skill(skill_id: str, db: Session = Depends(get_db)):
+    skill = db.query(Skill).filter(Skill.id == skill_id).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+
+    # Заборона видалення коренів обох світів
+    if "root_" in skill.id:
+         raise HTTPException(status_code=403, detail="Cannot delete a Core node")
+
+    # Рекурсивне видалення дітей (SQLAlchemy cascade зробить це сам, але тут для певності)
+    db.delete(skill)
+    db.commit()
+    return {"status": "deleted", "id": skill_id}
 
 @app.delete("/user/{user_id}/reset")
 def reset_user_tree(user_id: int, db: Session = Depends(get_db)):
-    # Знаходимо всі скіли користувача, які НЕ є кореневими
-    # Ми не чіпаємо root_, бо він створюється при ініціалізації
+    # Видаляємо всі скіли крім кореневих
     db.query(Skill).filter(
         Skill.user_id == user_id, 
-        ~Skill.id.like("root_%")
+        ~Skill.id.contains("root_")
     ).delete(synchronize_session=False)
     
-    # Також можна скинути рівень кореневого вузла до 100, якщо він раптом змінився
-    root_skill = db.query(Skill).filter(
-        Skill.user_id == user_id, 
-        Skill.id.like("root_%")
-    ).first()
-    
-    if root_skill:
-        root_skill.level = 100.0
-    
+    # Скидаємо корені до 100%
+    roots = db.query(Skill).filter(Skill.user_id == user_id, Skill.id.contains("root_")).all()
+    for r in roots:
+        r.level = 100.0
+        
     db.commit()
-    return {"status": "tree_reset", "user_id": user_id}
+    return {"status": "reset_complete"}

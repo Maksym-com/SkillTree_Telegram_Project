@@ -17,17 +17,24 @@ const SkillTree = ({
     const centerX = 1000;
     const isAbyss = world === 'abyss';
     
-    // Світло росте вгору від низу (1750), Безодня росте вниз від верху (250)
+    // Фільтруємо навички тільки для поточного світу
+    const worldSkills = Object.keys(skills).reduce((acc, key) => {
+      if (skills[key].world === world) {
+        acc[key] = skills[key];
+      }
+      return acc;
+    }, {});
+
     const startY = isAbyss ? 250 : 1750;
     const baseLength = 220;
     const spreadAngle = 60;
 
     const build = (id, x, y, parentAngle, depth = 0) => {
-      const skill = skills[id];
+      const skill = worldSkills[id];
       if (!skill) return;
 
-      const childrenIds = Object.keys(skills).filter(
-        key => skills[key].parent === id || skills[key].parent_id === id
+      const childrenIds = Object.keys(worldSkills).filter(
+        key => worldSkills[key].parent === id || worldSkills[key].parent_id === id
       );
 
       result[id] = {
@@ -46,7 +53,7 @@ const SkillTree = ({
       childrenIds.forEach((childId, index) => {
         const currentAngle = childrenIds.length === 1 ? parentAngle : startAngle + angleStep * index;
         const rad = (currentAngle * Math.PI) / 180;
-        const length = baseLength * Math.pow(0.8, depth);
+        const length = baseLength * Math.pow(0.85, depth); // Трохи збільшив коефіцієнт розгалуження
 
         const childX = x + Math.cos(rad) * length;
         const childY = y + Math.sin(rad) * length;
@@ -55,12 +62,12 @@ const SkillTree = ({
       });
     };
 
-    const rootId = Object.keys(skills).find(
-      id => !skills[id].parent && !skills[id].parent_id
+    // Шукаємо корінь конкретно для цього світу
+    const rootId = Object.keys(worldSkills).find(
+      id => id.startsWith(`root_${world}`)
     );
 
     if (rootId) {
-      // Початковий кут: -90 (вгору) для світла, 90 (вниз) для безодні
       build(rootId, centerX, startY, isAbyss ? 90 : -90);
     }
 
@@ -73,24 +80,31 @@ const SkillTree = ({
 
   return (
     <TransformWrapper
-      initialScale={1}
+      initialScale={0.8}
       centerOnInit
       minScale={0.2}
       limitToBounds={false}
     >
-      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-        <div style={{ width: "2000px", height: "2000px", position: "relative", margin: 0, padding: 0 }}>
+      <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
+        <div style={{ width: "2000px", height: "2000px", position: "relative" }}>
 
-          {/* SVG Шар для ліній */}
-          <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, top: 0, left: 0 }}>
+          <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
             <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              
               <linearGradient id="trunkGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isAbyss ? "#ff0000" : "#3b82f6"} stopOpacity="0.4" />
+                <stop offset="0%" stopColor={isAbyss ? "#ff0000" : "#3b82f6"} stopOpacity="0.6" />
                 <stop offset="100%" stopColor="transparent" stopOpacity="0" />
               </linearGradient>
             </defs>
 
-            {/* Візуальний "корінь/стовбур" */}
+            {/* Стовбур */}
             <rect 
               x="998" 
               y={isAbyss ? 0 : 1750} 
@@ -99,6 +113,7 @@ const SkillTree = ({
               fill="url(#trunkGradient)" 
             />
 
+            {/* Лінії зв'язку */}
             {Object.entries(treeData).map(([id, data]) => {
               const parent = treeData[data.parent];
               if (!parent) return null;
@@ -108,8 +123,7 @@ const SkillTree = ({
               const x2 = data.pos.x;
               const y2 = data.pos.y;
 
-              // Крива вигинається вниз у безодні і вгору у світлі
-              const curveOffset = isAbyss ? 20 : -20;
+              const curveOffset = isAbyss ? 25 : -25;
 
               return (
                 <path key={`line-${id}`}
@@ -118,15 +132,19 @@ const SkillTree = ({
                     ? (isAbyss ? "#ff4d4d" : "#119484") 
                     : (isAbyss ? "#300" : (theme === 'dark' ? "#1e293b" : "#cbd5e1"))
                   }
-                  strokeWidth={Math.max(2, 8 - data.depth * 1.5)}
+                  strokeWidth={Math.max(2, 6 - data.depth)}
                   fill="none"
-                  style={{ opacity: 0.6, transition: 'stroke 0.3s' }}
+                  style={{ 
+                    opacity: 0.8, 
+                    transition: 'stroke 0.5s ease',
+                    filter: data.level > 0 ? 'url(#glow)' : 'none' 
+                  }}
                 />
               );
             })}
           </svg>
 
-          {/* Вузли (Ромби) */}
+          {/* Вузли */}
           {Object.entries(treeData).map(([id, data]) => (
             <div
               key={`node-${id}`}
@@ -135,7 +153,7 @@ const SkillTree = ({
                 left: data.pos.x,
                 top: data.pos.y,
                 transform: 'translate(-50%, -50%)',
-                zIndex: 5,
+                zIndex: 10,
                 cursor: 'pointer'
               }}
               onClick={() => {
@@ -145,8 +163,8 @@ const SkillTree = ({
               }}
             >
               <div style={{
-                width: data.depth === 0 ? '36px' : '24px',
-                height: data.depth === 0 ? '36px' : '24px',
+                width: data.depth === 0 ? '42px' : '28px',
+                height: data.depth === 0 ? '42px' : '28px',
                 background: data.level >= 100 
                   ? (isAbyss ? '#ff0000' : '#5ad3c5') 
                   : data.level > 0 
@@ -154,24 +172,32 @@ const SkillTree = ({
                     : (isAbyss ? '#1a0000' : (theme === 'dark' ? '#1e293b' : '#cbd5e1')),
                 transform: 'rotate(45deg)',
                 border: isAbyss 
-                  ? '1px solid #600' 
-                  : (theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)'),
+                  ? `2px solid ${data.level > 0 ? '#f00' : '#300'}` 
+                  : `2px solid ${data.level > 0 ? '#119484' : 'rgba(100,100,100,0.2)'}`,
                 boxShadow: data.level > 0 
-                  ? `0 0 15px ${isAbyss ? 'rgba(255, 0, 0, 0.5)' : 'rgba(16, 211, 169, 0.5)'}` 
+                  ? `0 0 20px ${isAbyss ? 'rgba(255, 0, 0, 0.6)' : 'rgba(16, 211, 169, 0.6)'}` 
                   : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               }} />
 
               <div style={{
-                marginTop: '12px',
+                marginTop: '15px',
                 color: isAbyss ? '#ff4d4d' : (theme === 'dark' ? '#fff' : '#0f172a'),
-                fontSize: '10px',
+                fontSize: '11px',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
                 pointerEvents: 'none',
-                textShadow: isAbyss ? '0 0 5px #000' : 'none'
+                textShadow: isAbyss ? '0 0 8px #000' : '0 1px 3px rgba(0,0,0,0.2)',
+                fontWeight: data.depth === 0 ? 'bold' : 'normal'
               }}>
-                <div style={{ fontWeight: 'bold' }}>{data.name}</div>
-                <div style={{ color: isAbyss ? '#ff0000' : '#2cc3a0' }}>{Math.floor(data.level)}%</div>
+                <div>{data.name.toUpperCase()}</div>
+                <div style={{ 
+                    color: isAbyss ? '#f00' : '#2cc3a0', 
+                    fontSize: '9px',
+                    opacity: 0.8
+                }}>
+                    {Math.floor(data.level)}%
+                </div>
               </div>
             </div>
           ))}

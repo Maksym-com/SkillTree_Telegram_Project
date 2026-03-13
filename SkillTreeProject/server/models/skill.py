@@ -1,6 +1,12 @@
+import enum
+
 from sqlalchemy import Column, Integer, String, BigInteger, Float, ForeignKey
 from sqlalchemy.orm import relationship, backref
 from database import Base
+
+class WorldType(enum.Enum):
+    light = "light"
+    abyss = "abyss"
 
 class Skill(Base):
     __tablename__ = "skills"
@@ -9,6 +15,8 @@ class Skill(Base):
     level = Column(Float, default=0.0)
     pos_x = Column(Integer)
     pos_y = Column(Integer)
+
+    world = Column(String, default="light")
     
     # FK на користувача
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
