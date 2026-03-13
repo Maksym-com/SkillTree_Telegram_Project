@@ -123,21 +123,39 @@ const SkillTree = ({
               const x2 = data.pos.x;
               const y2 = data.pos.y;
 
-              const curveOffset = isAbyss ? 25 : -25;
+              // Розмір ромба (з гіпотенузою, бо ромб — це квадрат, повернутий на 45°)
+              const parentSize = parent.depth === 0 ? 42 : 28;
+              const childSize = data.depth === 0 ? 42 : 28;
+              const parentRadius = (parentSize / 2) * Math.SQRT1_2;
+              const childRadius = (childSize / 2) * Math.SQRT1_2;
+
+              // Вектор між центрами
+              const dx = x2 - x1;
+              const dy = y2 - y1;
+              const dist = Math.hypot(dx, dy) || 1;
+              const nx = dx / dist;
+              const ny = dy / dist;
+
+              // Зрушити початок/кінець до країв ромбів
+              const startX = x1 + nx * parentRadius;
+              const startY = y1 + ny * parentRadius;
+              const endX = x2 - nx * childRadius;
+              const endY = y2 - ny * childRadius;
 
               return (
-                <path key={`line-${id}`}
-                  d={`M ${x1} ${y1} Q ${(x1 + x2) / 2} ${(y1 + y2) / 2 + curveOffset} ${x2} ${y2}`}
-                  stroke={data.level > 0 
-                    ? (isAbyss ? "#ff4d4d" : "#119484") 
+                <path
+                  key={`line-${id}`}
+                  d={`M ${startX} ${startY} L ${endX} ${endY}`}
+                  stroke={data.level > 0
+                    ? (isAbyss ? "#ff4d4d" : "#119484")
                     : (isAbyss ? "#300" : (theme === 'dark' ? "#1e293b" : "#cbd5e1"))
                   }
                   strokeWidth={Math.max(2, 6 - data.depth)}
                   fill="none"
-                  style={{ 
-                    opacity: 0.8, 
+                  style={{
+                    opacity: 0.8,
                     transition: 'stroke 0.5s ease',
-                    filter: data.level > 0 ? 'url(#glow)' : 'none' 
+                    filter: data.level > 0 ? 'url(#glow)' : 'none'
                   }}
                 />
               );
